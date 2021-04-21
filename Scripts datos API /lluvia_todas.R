@@ -1,3 +1,6 @@
+# Script para obtención de datos de precipitación
+# de las estaciones automáticas de Piragua-Corantioquia
+
 # Cargamos librerías
 
 library(tidyverse)
@@ -24,7 +27,7 @@ estaciones$muniCodi = as.character(paste(estaciones$municipio, estaciones$codigo
 # Filtramos por territoriales (cambiar territorial en filter):
 # territorial == "XXXX"
 estaciones_pluvio = estaciones %>%
-  filter(tipo == "Pluviógrafo", territorial == "Aburrá Norte")
+  filter(tipo == "Pluviógrafo")
 
 
 # Definimos función de lectura de datos
@@ -74,14 +77,13 @@ get_lluvia = function() {
   
 }
 
+# Descargamos y almacenamos
 lluvia = get_lluvia()
 
 #Agrupamos por municipios y hallamos su acumulado para la temporalidad dada
 lluvia2 = lluvia %>%
   group_by(muniCodi, territorial, ubicacion) %>%
   dplyr::summarise(muestra = sum(muestra))
-
-ggpo
 
 
 # Para exportar los datos
@@ -127,14 +129,6 @@ lluvia_final$n <-  ifelse(is.na(lluvia_final$n),
 write.table(lluvia_final,"no_lluvia.txt", sep = ";", 
             col.names = c("municipios", "dias"),
             row.names = F)
-  
-#Hallamos los tres municipios en los que más ha llovido
-lluvia_agrupada = lluvia2[order(-lluvia2[,2]),]
-lluvia_agrupada = na.omit(lluvia_agrupada)
-head(lluvia_agrupada, 3)
-
-#Hallamos los tres municipios en los que menos ha llovido
-tail(lluvia_agrupada, 3)
 
 ##############################################################################
 

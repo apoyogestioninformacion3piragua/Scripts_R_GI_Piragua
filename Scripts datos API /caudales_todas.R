@@ -1,3 +1,6 @@
+# Scripts para descarga de datos de
+# nivel o caudales a partir de la API del Geoportal de Piragua
+
 library(tidyverse)
 library(urltools)
 library(lubridate)
@@ -35,10 +38,6 @@ get_data_limni = function(estacion, inicio, final){
   data = data[!(data$fecha == ""), ] # Para borrar campos de fechas vacíos
   data$fecha = as.POSIXct(data$fecha, "%Y-%m-%d %H-%M")
   data2 = data
-  #data$fechas = floor_date(data$fechas, "5 mins")
-  #limnidata2 = data %>%
-    #group_by(fechas) %>%
-    #dplyr::summarise(nivel = mean(nivel)) #Cambiar muestra, nivel o caudal
 }
 
 
@@ -76,6 +75,7 @@ limni = limni[sapply(limni, nrow) > 0]
 #Creamos un dataframe global con la lista de estaciones que tienen datos
 limni = do.call(rbind, limni)
 
+# Limpiamos datos
 limni2 <- limni
 limni2$calidad[limni2$calidad == "No data"] <- NA
 limni2$nivel[limni2$nivel == -999] <- NA
@@ -111,4 +111,3 @@ write.table(limni_resumen,"limni.txt", sep = ";",
 
 ##################################################################################
 
-save(limni, file = "limni.Rdata", compress = "xz")

@@ -1,0 +1,99 @@
+---
+output: pdf_document
+title: "Reporte mensual de precipitación (Febrero de 2021)"
+author: "Gestión de la Información-Piragua"
+
+
+header-includes:
+  - \usepackage{comment}
+  - \usepackage{graphicx}
+  - \usepackage{booktabs}
+  - \usepackage{xcolor}
+  - \usepackage{longtable}
+  - \usepackage{multirow}
+  - \usepackage{wrapfig}
+  - \usepackage{float}
+  - \usepackage{colortbl}
+  - \usepackage{pdflscape}
+  - \usepackage{tabu}
+  - \usepackage{threeparttable}
+  - \usepackage{threeparttablex}
+  - \usepackage[normalem]{ulem}
+  - \usepackage{makecell}
+  - \usepackage{xcolor}
+  - \usepackage{titling}
+  - \pretitle{\begin{center}
+    \includegraphics[width=2in,height=2in]{"/home/usanovich/Descargas/Logo_pir.png"}\LARGE\\}
+  - \posttitle{\end{center}}
+---
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(dplyr)
+library(plyr)
+library(ggthemes)
+
+prom <- read.csv("prom_lluvia.csv")
+
+prom_jur <- prom %>% 
+  filter(Territorial == "Jurisdicción")
+
+prom_terr <- prom %>% 
+  filter(Territorial != "Jurisdicción")
+
+prom$Semana <- factor(prom$Semana, levels=c("31-01",
+                                                 "07-02",
+                                                 "14-02",
+                                                 "21-02",
+                                            "28-02"))
+
+prom$Territorial <- factor(prom$Territorial,levels=c("Jurisdicción", "Aburrá Norte",
+                                                     "Aburrá Sur", "Cartama",
+                                                     "Citará", "Hevéxicos",
+                                                     "Panzenú", "Tahamíes",
+                                                     "Zenufaná"))
+
+prom$Semana <- as.factor(prom$Semana)
+
+p <- ggplot(data = prom, aes(x = Semana, y = Lluvia, fill = Semana)) +
+  geom_bar(stat = 'identity', position = 'dodge', width = 0.4) +
+  geom_text(aes(label=Lluvia), position=position_dodge(width=0.9), vjust=0.50,
+            size = 1.9) +
+  labs(x = "Semanas de registro (Febrero de 2021)", y = "Promedio precipitación semanal [mm]") +
+  ggtitle(label = "Promedios de precipitación semanal reportados por territorial",
+          subtitle = "Periodo: 31 de Enero de 2021 al 28 de Febrero de 2021") +
+  facet_wrap(~ Territorial, nrow = 3, scales = "free") + theme_fivethirtyeight() +
+  theme(text = element_text(size = 10), plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray"),
+        axis.title = element_text(),
+        axis.text.x = element_text(size = 7))
+
+prom_sum <- prom %>% 
+  group_by(Territorial) %>% 
+  dplyr::summarise(Acumulado = sum(Lluvia))
+
+prom_sum2 <- prom_sum %>% 
+  filter(Territorial != "Jurisdicción")
+
+min <- as.double(prom_sum2[which.max(prom_sum2$Acumulado),1])
+max <- as.double(prom_sum2[which.min(prom_sum2$Acumulado),1])
+
+```
+
+## Reporte de precipitación por territoriales a partir de la información recabada por la Red Automática de Piragua
+
+\vspace{0.5cm} 
+
+El acumulado mensual promedio para la jurisdicción de Corantioquia fue de: `r prom_sum$Acumulado[1]` mm. La territorial que presentó mayor precipitación en el mes de febrero fue: `r prom_sum2$Territorial[max]` con `r prom_sum2[which.max(prom_sum2$Acumulado),2]` mm. La territorial que presentó menor precipitación en el mes fue: `r prom_sum2$Territorial[min]` con `r prom_sum2[which.min(prom_sum2$Acumulado),2]` mm. El número de umbrales \colorbox{red}{rojos} que se presentaron en el mes fue de 31; el de umbrales \colorbox{orange}{naranjas} fue de 48 y el de \colorbox{yellow}{amarillos} fue de 58.
+
+A continuación se presenta el resumen gráfico por territoriales, incluyendo el promedio por jurisdicción, para cada uno de los acumulados de precipitación promedio semanales.
+
+```{r, echo = F}
+
+p
+
+```
+
+
+ 
