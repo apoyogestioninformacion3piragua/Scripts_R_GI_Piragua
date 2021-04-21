@@ -1,0 +1,617 @@
+---
+title: "**Reporte: precipitaciones y caudales (Área Metropolitana)**"
+author: "Piragua-Corantioquia"
+output: 
+  pdf_document:
+    number_sections: true
+    fig_caption: yes
+    extra_dependencies: ["float"]
+header-includes:
+  - \usepackage{comment}
+  - \usepackage{graphicx}
+  - \usepackage{booktabs}
+  - \usepackage{xcolor}
+  - \usepackage{longtable}
+  - \usepackage{multirow}
+  - \usepackage{wrapfig}
+  - \usepackage{float}
+  - \usepackage{colortbl}
+  - \usepackage{pdflscape}
+  - \usepackage{tabu}
+  - \usepackage{threeparttable}
+  - \usepackage{threeparttablex}
+  - \usepackage[normalem]{ulem}
+  - \usepackage{makecell}
+  - \usepackage{xcolor}
+  - \usepackage[spanish,es-tabla]{babel}
+  - \usepackage{titling}
+  - \pretitle{\begin{center}
+    \includegraphics[width=4in,height=4in]{"/home/usanovich/Documentos/Google Drive/Piragua/Reporte_05-04-2021/logo-2019.png"}\LARGE\\}
+  - \posttitle{\end{center}} 
+  - \setlength{\abovecaptionskip}{-13pt}
+  - \floatplacement{figure}{H}
+---
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+# Cargamos librerías
+
+library(tidyverse)
+library(urltools)
+library(lubridate)
+library(dplyr)
+library(ggthemes)
+library(gridExtra)
+library(kableExtra)
+library(knitr)
+options(timeout=20000)
+options(scipen=999)
+
+# Limpiamos el global enviroment
+
+rm(list = ls())
+
+# Definimos temporalidad para extracción de datos
+
+comenzar = "2021-04-01"
+finalizar = "2021-04-07"
+
+# Leemos estaciones
+
+estaciones = read.csv("http://www.piraguacorantioquia.com.co/redes_nuevo/images/Estaciones_Piragua.csv")
+estaciones$muniCodi = as.character(paste(estaciones$municipio, estaciones$codigo))
+
+a_metropolitan <- c("Barbosa", "Copacabana", "Girardota",
+                    "Bello", "Medellín", "Envigado",
+                    "Itaguí", "Sabaneta", "La Estrella",
+                    "Caldas")
+
+# Filtramos por territoriales (cambiar territorial en filter):
+# territorial == "XXXX"
+estaciones_pluvio = estaciones %>%
+  filter(tipo == "Pluviógrafo", municipio %in% a_metropolitan)
+
+
+# Definimos función de lectura de datos
+
+get_data = function(estacion, inicio, final){
+  url="https://www.piraguacorantioquia.com.co/api/v1/precipitacion/40?date_estacion__gte=2020-11-17&date_estacion__lt=2020-11-23&downloadfile"
+  url2 = param_set(url, "date_estacion__gte", inicio)
+  url3 = param_set(url2, "date_estacion__lt", final)
+  data = read.csv(gsub("40", estacion, url3))
+  data = na.omit(data)
+  data = data[!(data$fecha == ""), ] # Para borrar campos de fechas vacíos
+  data$fecha = as.POSIXct(data$fecha, "%Y-%m-%d %H-%M")
+  data2 = data
+}
+
+
+# Función de extracción y conversión de datos
+
+get_lluvia = function() {
+  
+  lluvia = list()
+  
+  # Guardamos en lista de listas todos los datasets de las estaciones 
+  # para una territorial en particular
+  for (i in 1:nrow(estaciones_pluvio)) {
+    
+    estacion = estaciones_pluvio$codigo[i]
+    lluvia[[i]] = get_data(estacion, comenzar, finalizar)
+    
+  }
+  # Agregamos una columna de municipios a cada dataframe de la lista
+  for (i in 1:length(lluvia)) {
+    
+    if (nrow(lluvia[[i]]) > 0) {
+      lluvia[[i]] = data.frame(lluvia[[i]],
+                               territorial = estaciones_pluvio[i,5],
+                               municipios = estaciones_pluvio[i,4],
+                               ubicacion = estaciones_pluvio[i,11],
+                               muniCodi = estaciones_pluvio[i,17])
+      
+    }
+  }
+  #Para eliminar listas con 0 filas
+  lluvia = lluvia[sapply(lluvia, nrow) > 0]
+  #Creamos un dataframe global con la lista de estaciones que tienen datos
+  lluvia = do.call(rbind, lluvia)
+  
+}
+
+lluvia = get_lluvia()
+```
+
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+lluvia$fecha <- ymd_hms(lluvia$fecha, tz = "America/Bogota")
+
+lluvia2 <-  lluvia %>%
+  select(fecha, muestra, muniCodi) %>% 
+  filter(fecha > as.Date("2021-04-05") & fecha < as.Date("2021-04-06"))
+
+lluvia3 <- lluvia2 %>% 
+  group_by(muniCodi) %>% 
+  mutate(cumsum = rev(cumsum(rev(muestra))))
+
+lluvia3$fecha[lluvia3$muestra == 0] <- NA
+lluvia3 <-  na.omit(lluvia3)
+
+med_data = subset(x = lluvia3, subset = muniCodi %in% c("Medellín 8"))
+cal_data = subset(x = lluvia3, subset = muniCodi %in% c("Caldas 75"))
+env_data = subset(x = lluvia3, subset = muniCodi %in% c("Envigado 81"))
+est_data = subset(x = lluvia3, subset = muniCodi %in% c("La Estrella 70"))
+saban_data = subset(x = lluvia3, subset = muniCodi %in% c("Sabaneta 69"))
+
+lluvia_am_d <- readRDS("lluvia_am_d.rds")
+
+lluvia_am_resumen <- lluvia_am_d %>% 
+  group_by(muniCodi) %>% 
+  dplyr::summarise(prom = mean(acum))
+
+lluvia_am_resumen_q <- lluvia_am_d %>% 
+  group_by(muniCodi) %>% 
+  dplyr::summarise(quantile = quantile(acum, c(0.99)))
+
+lluvia_am_day_plot <- ggplot(data = lluvia_am_d, aes(x = day, y = acum)) +
+  geom_line(colour = "#468AC1") +
+  labs(x = "Años de registro", y = "Precipitación acumulada diaria [mm]",
+       caption = "Gráficos construidos con datos de la red automática de Piragua-Corantioquia.
+       La calidad de los datos no ha sido verificada exhaustivamente*.") +
+  ggtitle(label = "Precipitación diaria acumulada histórica: estaciones pluviográficas en el Área Metropolitana",
+          subtitle = "Registro histórico de las precipitaciones diarias*") +
+  theme_stata() +
+  theme(text = element_text(size = 7), plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed")) +
+  facet_wrap(~ muniCodi, nrow = 3, scales = "free")
+
+
+
+med_1 <- ggplot(data = med_data, aes(x = fecha, y = muestra, group = 1)) +
+  geom_col(fill = "#468AC1") +
+  geom_point(size = 0.8) +
+  geom_line(linetype = "dashed", alpha = 0.4) +
+  labs(x = "Horas de registro", y = "Precipitación acumulada cada 5 minutos [mm]",
+       caption = "Gráficos construidos con datos de la red automática de Piragua-Corantioquia.
+       La calidad de los datos no ha sido verificada exhaustivamente*.") +
+  ggtitle(label = "Precipitación estación pluviográfica ubicada en Medellín",
+          subtitle = "Comportamiento precipitación: 5 de abril de 2021*") +
+  theme_stata() +
+  theme(text = element_text(size = 9),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed"))
+
+med_2 <- ggplot(data = med_data, aes(x = fecha, y = cumsum, group = 1)) +
+  geom_line(linetype = "solid", alpha = 0.9, 
+            colour = "#468AC1", size = 1.5) +
+  labs(x = "Horas de registro", y = "Precipitación acumulada desde el inicio de evento de precipitación [mm]",
+       caption = "Gráficos construidos con datos de la red automática de Piragua-Corantioquia.
+       La calidad de los datos no ha sido verificada exhaustivamente*.") +
+  ggtitle(label = "Precipitación estación pluviográfica ubicada en Medellín",
+          subtitle = "Comportamiento precipitación acumulada: 5 de abril de 2021*") +
+  theme_stata() +
+  theme(text = element_text(size = 10),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "black",
+                                        linetype = "dashed"))
+
+cal_data[38,2] <- NA
+cal_data <- na.omit(cal_data)
+
+cal_1 <- ggplot(data = cal_data, aes(x = fecha, y = muestra, group = 1)) +
+  geom_col(fill = "#468AC1") +
+  geom_point(size = 0.8) +
+  geom_line(linetype = "dashed", alpha = 0.4) +
+  labs(x = "Horas de registro", y = "Precipitación acumulada cada 5 minutos [mm]",
+       caption = "Gráficos construidos con datos de la red automática de Piragua-Corantioquia.
+       La calidad de los datos no ha sido verificada exhaustivamente*.") +
+  ggtitle(label = "Precipitación estación pluviográfica ubicada en Caldas",
+          subtitle = "Comportamiento precipitación: 5 de abril de 2021*") +
+  theme_stata() +
+  theme(text = element_text(size = 10),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed"))
+
+cal_2 <- ggplot(data = cal_data, aes(x = fecha, y = cumsum, group = 1)) +
+  geom_line(linetype = "solid", alpha = 0.9, 
+            colour = "#468AC1", size = 1.5) +
+  labs(x = "Horas de registro", y = "Precipitación acumulada desde el inicio de evento de precipitación [mm]",
+       caption = "Gráficos construidos con datos de la red automática de Piragua-Corantioquia.
+       La calidad de los datos no ha sido verificada exhaustivamente*.") +
+  ggtitle(label = "Precipitación estación pluviográfica ubicada en Caldas",
+          subtitle = "Comportamiento precipitación acumulada: 5 de abril de 2021*") +
+  theme_stata() +
+  theme(text = element_text(size = 10),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "black",
+                                        linetype = "dashed"))
+
+env_1 <- ggplot(data = env_data, aes(x = fecha, y = muestra, group = 1)) +
+  geom_col(fill = "#468AC1") +
+  geom_point(size = 0.8) +
+  geom_line(linetype = "dashed", alpha = 0.4) +
+  labs(x = "Horas de registro", y = "Precipitación acumulada cada 5 minutos [mm]",
+       caption = "Gráficos construidos con datos de la red automática de Piragua-Corantioquia.
+       La calidad de los datos no ha sido verificada exhaustivamente*.") +
+  ggtitle(label = "Precipitación estación pluviográfica ubicada en Envigado",
+          subtitle = "Comportamiento precipitación: 5 de abril de 2021*") +
+  theme_stata() +
+  theme(text = element_text(size = 10),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed"))
+
+env_2 <- ggplot(data = env_data, aes(x = fecha, y = cumsum, group = 1)) +
+  geom_line(linetype = "solid", alpha = 0.9, 
+            colour = "#468AC1", size = 1.5) +
+  labs(x = "Horas de registro", y = "Precipitación acumulada desde el inicio de evento de precipitación [mm]",
+       caption = "Gráficos construidos con datos de la red automática de Piragua-Corantioquia.
+       La calidad de los datos no ha sido verificada exhaustivamente*.") +
+  ggtitle(label = "Precipitación estación pluviográfica ubicada en Envigado",
+          subtitle = "Comportamiento precipitación acumulada: 5 de abril de 2021*") +
+  theme_stata() +
+  theme(text = element_text(size = 10),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "black",
+                                        linetype = "dashed"))
+
+est_data[44:45,2] <- NA
+est_data <- na.omit(est_data)
+
+est_1 <- ggplot(data = est_data, aes(x = fecha, y = muestra, group = 1)) +
+  geom_col(fill = "#468AC1") +
+  geom_point(size = 0.8) +
+  geom_line(linetype = "dashed", alpha = 0.5) +
+  labs(x = "Horas de registro", y = "Precipitación acumulada cada 5 minutos [mm]",
+       caption = "Gráficos construidos con datos de la red automática de Piragua-Corantioquia.
+       La calidad de los datos no ha sido verificada exhaustivamente*.") +
+  ggtitle(label = "Precipitación estación pluviográfica ubicada en La Estrella",
+          subtitle = "Comportamiento precipitación: 5 de abril de 2021*") +
+  theme_stata() +
+  theme(text = element_text(size = 10),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed"))
+
+est_2 <- ggplot(data = est_data, aes(x = fecha, y = cumsum, group = 1)) +
+  geom_line(linetype = "solid", alpha = 0.9, 
+            colour = "#468AC1", size = 1.5) +
+  labs(x = "Horas de registro", y = "Precipitación acumulada desde el inicio de evento de precipitación [mm]",
+       caption = "Gráficos construidos con datos de la red automática de Piragua-Corantioquia.
+       La calidad de los datos no ha sido verificada exhaustivamente*.") +
+  ggtitle(label = "Precipitación estación pluviográfica ubicada en La Estrella",
+          subtitle = "Comportamiento precipitación acumulada: 5 de abril de 2021*") +
+  theme_stata() +
+  theme(text = element_text(size = 10),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "black",
+                                        linetype = "dashed"))
+
+sab_1 <- ggplot(data = saban_data, aes(x = fecha, y = muestra, group = 1)) +
+  geom_col(fill = "#468AC1") +
+  geom_point(size = 0.8) +
+  geom_line(linetype = "dashed", alpha = 0.5) +
+  labs(x = "Horas de registro", y = "Precipitación acumulada cada 5 minutos [mm]",
+       caption = "Gráficos construidos con datos de la red automática de Piragua-Corantioquia.
+       La calidad de los datos no ha sido verificada exhaustivamente*.") +
+  ggtitle(label = "Precipitación estación pluviográfica ubicada en Sabaneta",
+          subtitle = "Comportamiento precipitación: 5 de abril de 2021*") +
+  theme_stata() +
+  theme(text = element_text(size = 10),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed"))
+
+sab_2 <- ggplot(data = saban_data, aes(x = fecha, y = cumsum, group = 1)) +
+  geom_line(linetype = "solid", alpha = 0.9, 
+            colour = "#468AC1", size = 1.5) +
+  labs(x = "Horas de registro", y = "Precipitación acumulada desde el inicio de evento de precipitación [mm]",
+       caption = "Gráficos construidos con datos de la red automática de Piragua-Corantioquia.
+       La calidad de los datos no ha sido verificada exhaustivamente*.") +
+  ggtitle(label = "Precipitación estación pluviográfica ubicada en Sabaneta",
+          subtitle = "Comportamiento precipitación acumulada: 5 de abril de 2021*") +
+  theme_stata() +
+  theme(text = element_text(size = 10),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "black",
+                                        linetype = "dashed"))
+
+# Comparativo #
+
+colnames(lluvia3)[3] <- "Estación"
+
+am_precip <- ggplot(data = lluvia3, 
+                    aes(x = fecha, y = cumsum, colour = Estación)) +
+  geom_line(linetype = "solid", alpha = 0.9, size = 1.5) +
+  labs(x = "Horas de registro", y = "Precipitación acumulada [mm]",
+       caption = "Gráficos construidos con datos de la red automática de Piragua-Corantioquia.
+       La calidad de los datos no ha sido verificada exhaustivamente*.") +
+  ggtitle(label = "Comparativo: precipitaciones acumuladas en distintas estaciones pluviográficas.",
+          subtitle = "Estaciones pluviográficas Área Metropolitana: 5 de abril de 2021*") +
+  theme_stata() +
+  theme(text = element_text(size = 10),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "black",
+                                        linetype = "dashed"),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 8),
+        legend.position= "bottom",
+        legend.key.size = unit(1.0,"line"))
+
+am_precip_2 <- ggplot(data = lluvia3, 
+                    aes(x = fecha, y = muestra, colour = Estación)) +
+  geom_line(alpha = 0.9, size = 0.8) +
+  labs(x = "Horas de registro", y = "Precipitación acumulada desde el inicio de evento de precipitación [mm]",
+       caption = "Gráficos construidos con datos de la red automática de Piragua-Corantioquia.
+       La calidad de los datos no ha sido verificada exhaustivamente*.") +
+  ggtitle(label = "Comparativo: precipitaciones acumuladas en distintas estaciones pluviográficas.",
+          subtitle = "Estaciones pluviográficas Área Metropolitana: 5 de abril de 2021*") +
+  theme_stata() +
+  theme(text = element_text(size = 9),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "black",
+                                        linetype = "dashed"),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size = 6),
+        legend.position="bottom",
+        legend.key.size = unit(1.0,"line"))
+```
+
+El presente reporte tiene la intención de ofrecer un acercamiento somero y aproximado, a partir de vistas gráficas y modestos análisis de datos, sobre los eventos de lluvia que acaecieron en varios municipios del Área Metropolitana del Valle de Aburrá, con especial interés en el municipio de Medellín, debido a la intensidad de las lluvias que se presentaron desde aproximadamente las 19:00 del 5 de abril de 2021. También se ahonda un poco en este reporte mostrando el comportamiento del caudal para la fuente monitoreada por la estación limnigráfica ubicada en el municipio de Copacabana y que opera sobre el Río Medellín.
+
+\section{Reporte de precipitaciones}
+
+En esta sección se presentan los reportes gráficos referentes a los eventos de precipitación que sucedieron el 5 de abril de 2021. Para esto, se hizo acopio de los datos que la red automática de Piragua-Corantioquia arroja. Los reportes constan de dos tipos de gráficas: una donde se evidencia la evolución temporal de la precipitación cada 5 minutos y otra donde se esquematizan las curvas de precipitación acumulada correspondientes a cada estación pluviográfica. Posteriormente se condensan estas curvas en una gráfica comparativa y finalmente se presentan las series de tiempo de la precipitación diaria acumulada para cada estación pluviográfica analizada.
+
+\subsection{Reporte de evento de precipitación para el municipio de Medellín}
+
+La estación pluviográfica de Medellín registró el 5 de abril de 2021 una precipitación acumulada de 79.25 mm, así mismo presentó un umbral rojo correspondiente a 38 mm de precipitación en 173 minutos. El promedio diario  histórico de precipitación para esta estación pluviográfica es de 4.79 mm y su percentil 99 (con base a los acumulados históricos diarios) es de 46.14 mm. Con base a esto, se tiene que el evento ocurrido el 5 de abril de 2021 es un evento atípico, dado que el acumulado diario supera ampliamente el percentil 99.
+
+```{r, echo = F, message = F, warning = F, fig.cap = "\\label{fig:fig_preci_med1} Precipitación registrada cada 5 minutos por estación pluviográfica Medellín 8 (Elaboración Propia)."}
+
+med_1
+
+```
+
+```{r, echo = F, message = F, warning = F, fig.cap = "\\label{fig:fig_preci_med2}Precipitación acumulada registrada en estación pluviográfica Medellín 8  a partir del inicio de evento lluvioso (Elaboración Propia)."}
+
+med_2
+
+```
+
+\subsection{Reporte de evento de precipitación para el municipio de Envigado}
+
+La estación pluviográfica de Envigado registró el 5 de abril de 2021 una precipitación acumulada de 23.37 mm. El promedio diario  histórico de precipitación para esta estación pluviográfica es de 4.38 mm y su percentil 99 (con base en los acumulados históricos diarios) es de 39.88 mm. Con base a esto, se tiene que el evento ocurrido el 5 de abril de 2021 es un evento atípico, dado que el acumulado diario supera ampliamente el percentil 99.
+
+```{r, echo = F, message = F, warning = F, fig.cap = "\\label{fig:fig_preci_env1}Precipitación registrada cada 5 minutos por estación pluviográfica Envigado 81 (Elaboración Propia)."}
+
+env_1
+
+```
+
+```{r, echo = F, message = F, warning = F, fig.cap = "\\label{fig:fig_env2}Precipitación acumulada registrada en estación pluviográfica Envigado 82 a partir del inicio de evento lluvioso (Elaboración Propia)."}
+
+env_2
+
+```
+
+\subsection{Reporte de evento de precipitación para el municipio de La Estrella}
+
+La estación pluviográfica de La Estrella registró el 5 de abril de 2021 una precipitación acumulada de 67.56 mm. El promedio diario  histórico de precipitación para esta estación pluviográfica es de 4.16 mm y su percentil 99 (con base en los acumulados históricos diarios) es de 36.07 mm. Con base a esto, se tiene que el evento ocurrido el 5 de abril de 2021 es un evento atípico, dado que el acumulado diario supera ampliamente el percentil 99.
+
+```{r, echo = F, message = F, warning = F, fig.cap = "\\label{fig:fig_preci_est1}Precipitación registrada cada 5 minutos por estación pluviográfica La Estrella 70 (Elaboración Propia)."}
+
+est_1
+
+```
+
+```{r, echo = F, message = F, warning = F, fig.cap = "\\label{fig:fig_preci2}Precipitación acumulada registrada en estación pluviográfica La Estrella 70 a partir del inicio de evento lluvioso (Elaboración Propia)."}
+
+est_2
+
+```
+
+\subsection{Reporte de evento de precipitación para el municipio de Sabaneta}
+
+La estación pluviográfica de Sabaneta  registró el 5 de abril de 2021 una precipitación acumulada de 52.58 mm. El promedio diario  histórico de precipitación para esta estación pluviográfica es de 4.36 mm y su percentil 99 (con base en los acumulados históricos diarios) es de 41.39 mm.
+
+```{r, echo = F, message = F, warning = F, fig.cap = "\\label{fig:fig_preci_sab1}Precipitación registrada cada 5 minutos por estación pluviográfica Sabaneta 69 (Elaboración Propia)."}
+
+sab_1
+
+```
+
+```{r, echo = F, message = F, warning = F, fig.cap = "\\label{fig:fig_preci_sab2}Precipitación acumulada registrada en estación pluviográfica Sabaneta 69 a partir del inicio de evento lluvioso (Elaboración Propia)."}
+
+sab_2
+
+```
+
+\subsection{Reporte de evento de precipitación para el municipio de Caldas}
+
+La estación pluviográfica de Sabaneta  registró el 5 de abril de 2021 una precipitación acumulada de 16.76 mm. El promedio diario  histórico de precipitación para esta estación pluviográfica es de 5.79 mm y su percentil 99 (con base en los acumulados históricos diarios) es de 42.50 mm.
+
+```{r, echo = F, message = F, warning = F, fig.cap = "\\label{fig:fig_preci_cal1}Precipitación registrada cada 5 minutos por estación pluviográfica Caldas 75 (Elaboración Propia)."}
+
+cal_1
+
+```
+
+```{r, echo = F, message = F, warning = F, fig.cap = "\\label{fig:fig_preci_cal2} Precipitación acumulada registrada en estación pluviográfica Caldas 75 a partir del inicio de evento lluvioso (Elaboración Propia)."}
+
+cal_2
+
+```
+
+\subsection{Reporte comparativo de precipitaciones acumuladas}
+
+Se evidencia que, para las estaciones pluviográficas analizadas, los eventos lluviosos se presentan de forma aproximadamente simultánea, siendo las estaciones de Medellín y La Estrella las que registraron eventos más intensos de lluvia (curvas con pendiente más pronunciadas).
+
+```{r, echo = F, message = F, warning = F, fig.cap = "\\label{fig:fig_preci_am} Comparativo de  precipitación acumulada para las estaciones pluviográficas que reportaron datos el 5 de abril de 2021 (Elaboración Propia)."}
+
+am_precip
+
+```
+
+```{r, echo = F, message = F, warning = F, fig.cap = "\\label{fig:fig_preci_am_d} Registros históricos de precipitación diaria acumulada para cada estación del Área Metropolitana analizada (Elaboración Propia)."}
+lluvia_am_day_plot
+```
+
+
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+
+comenzar = "2021-04-01"
+finalizar = "2021-04-07"
+
+# Leemos estaciones
+
+estaciones = read.csv("http://www.piraguacorantioquia.com.co/redes_nuevo/images/Estaciones_Piragua.csv")
+estaciones$muniCodi = as.character(paste(estaciones$municipio, estaciones$codigo))
+
+# Filtramos por tipo de estación 
+
+estaciones_limni = estaciones %>%
+  filter(tipo == "Limnígrafo", municipio %in% a_metropolitan)
+#estaciones_limni$municipio = make.names(estaciones_limni[,4], unique = TRUE)
+
+# Funcion para obtener dataset de estación limnigráfica
+
+get_data_limni = function(estacion, inicio, final){
+  url="https://www.piraguacorantioquia.com.co/api/v1/nivel/1017?date_estacion__gte=2020-01-01&date_estacion__lt=2020-01-02&downloadfile"
+  url2 = param_set(url, "date_estacion__gte", inicio)
+  url3 = param_set(url2, "date_estacion__lt", final)
+  data = read.csv(gsub("1017", estacion, url3))
+  data = na.omit(data)
+  data = data[!(data$fecha == ""), ] # Para borrar campos de fechas vacíos
+  data$fecha = as.POSIXct(data$fecha, "%Y-%m-%d %H-%M")
+  data2 = data
+  #data$fechas = floor_date(data$fechas, "5 mins")
+  #limnidata2 = data %>%
+    #group_by(fechas) %>%
+    #dplyr::summarise(nivel = mean(nivel)) #Cambiar muestra, nivel o caudal
+}
+
+
+# Iteramos sobre las estaciones limnigráficas
+  
+limni = list() # Creamos una lista vacía
+  
+# Guardamos en lista de listas todos los datasets de las estaciones 
+# para una territorial en particular
+  
+for (i in 1:nrow(estaciones_limni)) {
+    
+  estacion = estaciones_limni$codigo[i]
+  limni[[i]] = get_data_limni(estacion, comenzar, finalizar)
+    
+  }
+  
+# Agregamos una columna de municipios a cada dataframe de la lista
+  
+for (i in 1:length(limni)) {
+    
+  if (nrow(limni[[i]]) > 0) {
+    
+      limni[[i]] = data.frame(limni[[i]], 
+                              territorial = estaciones_limni[i,5],
+                              municipios = estaciones_limni[i,4],
+                              muniCodi = estaciones_limni[i,17],
+                              fuente = estaciones_limni[i,7])
+  }
+}
+
+#Para eliminar listas con 0 filas
+limni = limni[sapply(limni, nrow) > 0]
+
+#Creamos un dataframe global con la lista de estaciones que tienen datos
+limni = do.call(rbind, limni)
+
+limni2 <- limni
+limni2$calidad[limni2$calidad == "No data"] <- NA
+limni2$nivel[limni2$nivel == -999] <- NA
+limni2$nivel[limni2$nivel <= 0] <- NA
+limni2 <- na.omit(limni2)
+
+limni2$fecha <- ymd_hms(limni2$fecha, tz = "America/Bogota")
+
+limni3 <-  limni2 %>%
+  select(fecha, nivel, muniCodi) %>% 
+  filter(fecha > as.Date("2021-04-05") & fecha < as.Date("2021-04-06"))
+
+copa_limni_data <- subset(x = limni3, subset = muniCodi %in% c("Copacabana 1017"))
+
+copa_limni <- ggplot(data = copa_limni_data[1:89,], aes(x = fecha, y = nivel, group = 1)) +
+  geom_line(linetype = "solid", alpha = 1, colour = "#468AC1",
+            size = 1.3) +
+  geom_vline(xintercept = as.numeric(as.Date("2021-04-05 21:55:00")),
+             linetype = 4, colour = "black") +
+  labs(x = "Horas de registro", y = "Caudal registrado m³/s",
+       caption = "Gráficos construidos con datos de la red automática de Piragua-Corantioquia.
+       La calidad de los datos no ha sido verificada exhaustivamente*.") +
+  ggtitle(label = "Caudal registrado por estación limnigráfica Copacabana 1017 (Río Medellín)",
+          subtitle = "Comportamiento del caudal: 5 de abril de 2021*") +
+  theme_stata() +
+  theme(text = element_text(size = 10),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "black",
+                                        linetype = "dashed"))
+
+#Agrupamos por municipios y hallamos su promedio
+limni_prom = limni2 %>%
+  group_by(territorial, muniCodi) %>%
+  dplyr::summarise(medio = mean(nivel)) # Nivel, caudal o muestra
+
+#Agrupamos por municipios y hallamos su máximo
+limni_max = limni2 %>%
+  group_by(territorial, muniCodi) %>%
+  dplyr::summarise(máximo = max(nivel)) # Nivel, caudal o muestra
+
+#Agrupamos por municipios y hallamos su mínimo
+limni_min = limni2 %>%
+  group_by(territorial, muniCodi) %>%
+  dplyr::summarise(mínimo = min(nivel)) # Nivel, caudal o muestra
+
+# Creamos dataset con resumen
+limni_resumen = data.frame(limni_prom, limni_max$máximo,
+                           limni_min$mínimo)
+colnames(limni_resumen) = c("Territorial", "Estación", "Promedio",
+                            "Máximo", "Mínimo")
+```
+
+# Reporte de caudales
+
+A partir de los datos suministrados por la estación limnigráfica del municipio de Copacabana que opera sobre el Río Medellín, se tiene que: desde las 19:55 del 5 de abril de 2021, se presentó un incremento sostenido, durante aproximadamente 2 horas, del caudal de la fuente monitoreada, pasando de $24.52 m^3/s$ a $395.42 m^3/s$ (valor máximo registrado durante el día). Para este punto de monitoreo de caudal, se tiene que el promedio histórico corresponde a $27.46 m^3/s$. En la siguiente gráfica se esquematiza el comportamiento del caudal en la fuente monitoreada.
+
+```{r, echo = F, message = F, warning = F, fig.cap = "\\label{fig:fig_limni_copa} Caudal registrado por estación limnigráfica Copacabana 1017 que monitorea el Río Medellín (Elaboración Propia)."}
+
+copa_limni
+
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+
+limni_copa <- readRDS("copa_limni.rds")
+
+limni_copa_d <-  limni_copa %>% 
+  group_by(day = floor_date(fecha, "day")) %>% 
+  dplyr::summarise(caudal_m = mean(caudal))
+
+copa_limn_day <- ggplot(data = limni_copa, aes(x = fecha, y = caudal)) +
+  geom_line(colour = "#468AC1") +
+  labs(x = "Años de registro", y = "Precipitación acumulada diaria [mm]") +
+  ggtitle(label = "Monitoreo de precipitación: Vegachí (Zenufaná)",
+          subtitle = "Registro histórico de la precipitación en Vegachí (Estación edificio alcaldía)*") +
+  theme_stata() +
+  theme(text = element_text(size = 9), plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed"))
+
+
+
+```
+

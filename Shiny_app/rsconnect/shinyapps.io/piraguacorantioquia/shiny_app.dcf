@@ -1,0 +1,11 @@
+name: shiny_app
+title:
+username:
+account: piraguacorantioquia
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3510922
+bundleId: 4500950
+url: https://piraguacorantioquia.shinyapps.io/shiny_app/
+when: 1619022729.98931
+lastSyncTime: 1619022729.98937

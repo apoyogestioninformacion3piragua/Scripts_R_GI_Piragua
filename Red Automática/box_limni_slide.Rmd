@@ -1,0 +1,59 @@
+---
+title: "Untitled"
+author: "Jorge Moncayo"
+date: "18/1/2021"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## R Markdown
+
+This is an R Markdown presentation. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document.
+
+## Slide with Bullets
+
+- Bullet 1
+- Bullet 2
+- Bullet 3
+
+## Slide with R Output
+
+```{r cars, echo = TRUE}
+summary(cars)
+```
+
+## Slide with Plot
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(knitr)
+library(rmdformats)
+library(tidyverse)
+library(urltools)
+library(lubridate)
+library(dplyr)
+library(DT)
+library(skimr)
+
+load("limni2.rda")
+
+limni2 <-  limni %>% 
+  filter(territorial %in% c("Tahamíes"))
+
+limni2$Year <- format(as.Date(limni2$fechas), "%Y")
+
+p <-  ggplot(limni2, mapping = aes(x = Year, y = nivel, 
+                                  color = Year)) +
+  geom_boxplot() +
+  facet_wrap(~municipios, scales = "free", nrow = 2)
+```
+
+```{r}
+p
+```
+
+

@@ -1,0 +1,153 @@
+---
+title: "Prueba Dashboard Lluvia-Nivel"
+autor: "Jorge Moncayo"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    social: menu
+    source_code: embed
+---
+
+```{r setup, include=FALSE}
+
+# Carga inicial de librerías
+
+library(tidyverse)
+library(ggplot2)
+library(dygraphs)
+library(plotly)
+library(plyr)
+library(xts)
+library(flexdashboard)
+library(urltools)
+library(lubridate)
+library(reshape2)
+library(skimr)
+
+
+# Funcion para obtener dataset de estación limnigráfica
+
+get_data_limni = function(estacion, inicio, final){
+  url="https://www.piraguacorantioquia.com.co/api/nivel/1017?date_estacion__gte=2020-01-01&date_estacion__lt=2020-01-02&downloadfile"
+  url2 = param_set(url, "date_estacion__gte", inicio)
+  url3 = param_set(url2, "date_estacion__lt", final)
+  gsub("1017", estacion, url3)
+}
+
+###############################################
+
+# Caudales y niveles
+
+# Carga inicial de datos
+
+limni = read_csv(get_data_limni("1017", "2012-01-01", "2020-11-25"))
+
+# Eliminamos filas con NA's
+
+limni = na.omit(limni)
+
+# Cambiando nombre a columnas de limni
+
+colnames(limni) = c("Fecha", "Muestra", "Nivel", "Caudal")
+
+limni$Ano <- format(as.Date(limni$Fecha), "%Y")
+head(limni)
+
+
+```
+
+Reporte de caudales y niveles
+=======================================================================
+
+Row
+-----------------------------------------------------------------------
+
+### Reporte histórico de niveles (Estación limnigráfica 1017-Copacabana)
+
+```{r}
+
+p = ggplot(limni, aes(x = Fecha, y = Nivel)) +
+  stat_smooth(color='blue') +
+  geom_line(colour = "#2391D0", alpha = 0.6) +
+  labs(x = "Fecha", y = "Nivel registrado [m]")
+  
+ggplotly(p)
+
+```
+
+### Diagrama de cajas y bigotes para datos históricos de niveles (Estación limnigráfica 1017-Copacabana)
+
+```{r}
+
+p = ggplot(limni) +
+  geom_boxplot(mapping = aes(x = Ano, y = Nivel, color = Ano)) +
+  labs(x = "Año", y = "Nivel registrado [m]") +
+  theme(legend.position = "right") +
+  theme(legend.title=element_blank())
+  
+ggplotly(p)
+
+```
+
+
+Row
+-----------------------------------------------------------------------
+
+### Reporte histórico de caudales (Estación limnigráfica 1017-Copacabana)
+
+```{r}
+
+p = ggplot(limni, aes(x = Fecha, y = Caudal)) +
+  stat_smooth(color='blue') +
+  geom_line(colour = "#2391D0") +
+  labs(x = "Fecha", y = "Caudal [m\u00b3/s]")
+  
+ggplotly(p)
+
+```
+
+### Diagrama de cajas y bigotes para datos históricos de caudal (Estación limnigráfica 1017-Copacabana)
+
+```{r}
+
+p = ggplot(limni) +
+  geom_boxplot(mapping = aes(x = Ano, y = Caudal, color = Ano)) +
+  labs(x = "Caudal [m\u00b3/s]", y = "Año") +
+  theme(legend.position = "right") +
+  theme(legend.title=element_blank())
+  
+ggplotly(p)
+
+```
+
+Reporte de lluvia y caudal semanal 
+=======================================================================
+
+**Semana 16 -23 de Noviembre de  2020**
+
+Se evidenció:
+
+**Precipitación** 🌧:
+
+El municipio con la estación que presento más precipitación fue **Campamento - (Oficina Territorial Tahamíes)** obtuvo el registro de acumulado de lluvía  para la semana más alto de toda la Jurisdicción para esta semana con una cantidad de **113 mm**, su promedio histórico está en **41 mm** obteniendo un incremento de 175 % de precipitación bajo el valor del promedio histórico registrado.
+
+El municipio con la estación que presentó más precipitación fue **Guadalupe - (Oficina Territorial Tahamíes)**, obtuvo el registro de acumulado de lluvía más alto para la semana de toda la Jurisdicción para esta semana con una cantidad de **176 mm**, su promedio histórico esta en **224 mm**, pero en esta estación NO sobrepaso el promedio historico semanal de este año.
+
+En general, en la Jurisdicción llovió en promedio **42 mm** respecto a los **36 mm** registrados el año pasado, lo cual significa un incremento del 18%.
+
+
+**Caudal** 〰 :
+
+El resumen del comporatamiento de los principales puntos de medición de caudal de la Jurisdicción con variaciones entre su registro actual y el promedio histórico
+
+<https://drive.google.com/file/d/1_lThWM2B5iJp41jwAU1AHXIuwjAJBn6_/view?usp=sharing>
+
+**Monitoreo de Calidad**  💧:
+
+Se realizaron: 40 monitoreos en la jurisdicción distribuidos así:
+
+Citará: 26 fuentes abastecedoras monitoreadas
+Cartama: 3 fuentes abastecedoras monitoreadas  
+
+Fuentes Instrumentadas: 11 ( fuente dónde tenemos medición de caudal) 
+

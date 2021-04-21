@@ -1,0 +1,86 @@
+---
+title: "Informe de Gestión de la Información sobre el estado de la red automática de Piragua."
+date: "`r Sys.Date()`"
+output:
+  rmdformats::material:
+    highlight: kate
+css: custom.css
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+```{r setup, include=FALSE}
+library(knitr)
+library(rmdformats)
+library(tidyverse)
+library(urltools)
+library(lubridate)
+library(dplyr)
+library(DT)
+library(skimr)
+options(timeout=500)
+options(scipen=999)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=FALSE,
+	             cache=TRUE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+```
+
+# Estaciones limnigráficas
+
+A partir de la API del geoportal de Piragua, se extrajeron los datos históricos para cada una de las estaciones limnigráficas que posee el programa. Así mismo, una vez obtenidos los datos, se procedió a encontrar las fechas mínimas y máximas de operación para cada estación, entendidas como las fechas primera y últimas de los respectivos históricos.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+load("limni_op.rda")
+load("limni_resumen.rda")
+
+```
+
+A continuación se presentan los resultados de dicho análisis.
+
+```{r}
+datatable(limni_op)
+```
+
+Por otra parte, se presenta un simple resumen estadístico respecto a los promedios, las medias, los máximos y los mínimos obtenidos a partir de los históricos de cada estación limnigráfica evaluada.
+
+```{r}
+datatable(limni_resumen)
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+load("lluvia_op_final.rda")
+load("lluvia_resumen_final.rda")
+
+```
+
+
+# Estaciones pluviográficas
+
+Nuevamente, mediante la API del geoportal de Piragua, se extrajeron los datos históricos para cada una de las estaciones pluviográficas (excepto la ubicada en el municipio de  Girardota) que posee el programa. Además, una vez obtenidos los datos, se procedió a encontrar las fechas mínimas y máximas de operación para cada estación, entendidas como las fechas primera y últimas de los respectivos históricos.
+
+A continuación se presentan los resultados de dicho análisis.
+
+```{r}
+datatable(lluvia_op)
+```
+
+Adicionalmente, se presenta un simple resumen estadístico respecto a los promedios, las medias, los máximos y los cuantiles 50 y 90, obtenidos a partir de los históricos de cada estación limnigráfica evaluada. Téngase en cuenta que dicho resumen es en base a acumulados diarios de precipitación.
+
+```{r}
+datatable(lluvia_resumen)
+```
+
+

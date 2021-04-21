@@ -1,0 +1,384 @@
+---
+title: "**Reporte: monitoreo del recurso hídrico en el municipio de Vegachí (Territorial Zenufaná)**"
+author: "Piragua-Corantioquia"
+output: 
+  pdf_document:
+    number_sections: true
+    fig_caption: yes
+    extra_dependencies: ["float"]
+header-includes:
+  - \usepackage{comment}
+  - \usepackage{graphicx}
+  - \usepackage{booktabs}
+  - \usepackage{xcolor}
+  - \usepackage{longtable}
+  - \usepackage{multirow}
+  - \usepackage{wrapfig}
+  - \usepackage{float}
+  - \usepackage{colortbl}
+  - \usepackage{pdflscape}
+  - \usepackage{tabu}
+  - \usepackage{threeparttable}
+  - \usepackage{threeparttablex}
+  - \usepackage[normalem]{ulem}
+  - \usepackage{makecell}
+  - \usepackage{xcolor}
+  - \usepackage[spanish,es-tabla]{babel}
+  - \usepackage{titling}
+  - \pretitle{\begin{center}
+    \includegraphics[width=4in,height=4in]{"/home/usanovich/Documentos/Google Drive/Piragua/Vegachí/logo-2019.png"}\LARGE\\}
+  - \posttitle{\end{center}} 
+  - \setlength{\abovecaptionskip}{-13pt}
+  - \floatplacement{figure}{H}
+---
+
+
+
+```{r , echo = FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(dplyr)
+library(plyr)
+library(ggthemes)
+library(lubridate)
+library(gridExtra)
+library(kableExtra)
+library(knitr)
+
+load("/home/usanovich/Documentos/Google Drive/Piragua/Vegachí/HB/vega2.Rda")
+
+Vegachí_HB$FECHA <- as.Date(Vegachí_HB$FECHA)
+Vegachí_HB$Fuente[Vegachí_HB$Fuente == "Q.El Placer(La Julia)"] <- "Q. El Placer"
+Vegachí_HB$Fuente[Vegachí_HB$Fuente == "Q.El Horizonte"] <- "Q. El Horizonte"
+Vegachí_HB$Fuente <- as.factor(Vegachí_HB$Fuente)
+
+vega_bmwp <-  Vegachí_HB %>% 
+  group_by(FECHA,AÑO, Campaña, Fuente) %>% 
+  dplyr::summarise(BMWP_fuente = sum(BMWP))
+
+vega_bmwp_t <- vega_bmwp[c(1,4,5)] %>% 
+  filter(FECHA >= as.Date("2019-01-01"))
+
+colnames(vega_bmwp_t) <- c("Fecha", "Fuente", "BMWP/Col")
+
+max_mbwp <-  round_any(max(vega_bmwp$BMWP_fuente), 10)
+
+p <- ggplot(data = vega_bmwp, aes(x = FECHA, y = BMWP_fuente)) +
+  geom_rect(aes(ymin = 0, ymax = 20, 
+                xmin = as.Date(min(FECHA),"%Y-%m-%d"), 
+                xmax = as.Date(max(FECHA),"%Y-%m-%d"), fill = 'Muy crítica'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 20, ymax = 45, 
+                xmin = as.Date(min(FECHA),"%Y-%m-%d"), 
+                xmax = as.Date(max(FECHA),"%Y-%m-%d"), fill = 'Crítica',
+                ),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 45, ymax = 70, 
+                xmin = as.Date(min(FECHA),"%Y-%m-%d"), 
+                xmax = as.Date(max(FECHA),"%Y-%m-%d"), fill = 'Dudosa'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 122, 
+                xmin = as.Date(min(FECHA),"%Y-%m-%d"), 
+                xmax = as.Date(max(FECHA),"%Y-%m-%d"), fill = 'Aceptable'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 122, ymax = max(vega_bmwp$BMWP_fuente), 
+                xmin = as.Date(min(FECHA),"%Y-%m-%d"), 
+                xmax = as.Date(max(FECHA),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_vline(xintercept = as.numeric(as.Date("2019-01-01")),
+             linetype = 4, colour = "black") +
+  geom_hline(yintercept=20, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=45, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=70, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=122, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="BMWP/Col",
+                    breaks = c("Muy crítica", "Crítica", 
+                               "Dudosa", "Aceptable",
+                               "Buena"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, max_mbwp)) +
+  labs(x = "Años de registro", y = "BMWP/Col", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad hidrobiológica: Fuentes abastecedoras Vegachí (Zenufaná)",
+          subtitle = "Registro histórico del Índice BMWP/Col para diferentes fuentes abastecedoras monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(vega_bmwp$FECHA), max(vega_bmwp$FECHA)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 2, scales = "free")
+
+
+# FQ
+
+library(readxl)
+vega_fq <- read_excel("/home/usanovich/Documentos/Google Drive/Piragua/Vegachí/FQ/BD_FQ_2.xlsx", col_types = c("numeric",  "text", "text", "text", "text", "text", 
+"date", "skip", "numeric", "numeric", "numeric", 
+"numeric", "numeric", "numeric", "numeric", 
+"text", "numeric", "numeric", "numeric", 
+ "numeric", "numeric", "numeric", "numeric", 
+"numeric", "numeric", "numeric", "numeric", "numeric", 
+"numeric", "numeric", "numeric", "numeric", "numeric", 
+ "numeric", "text"))
+
+vega_fq$Fecha <- as.Date(vega_fq$Fecha)
+
+vega_fq$Fuente <- as.factor(vega_fq$Fuente)
+
+vega_fq2 <- vega_fq %>% 
+  filter(Fuente %in% c("Q. La Gallinera", "Q.El Horizonte",
+                       "Q.El Placer(La Julia)",
+                       "Q.Alto de la Puerta"))
+
+vega_fq2_t <- vega_fq2[c(7,6,33)] %>% 
+  filter(Fecha >= as.Date("2019-01-01"))
+
+vega_fq2_t$ICA <- ceiling(vega_fq2_t$ICA)
+
+colnames(vega_fq2_t) <- c("Fecha", "Fuente", "ICA-NFS WQI")
+
+q <- ggplot(data = vega_fq2, aes(x = Fecha, y = ICA)) +
+  geom_rect(aes(ymin = 0, ymax = 25, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 25, ymax = 50, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 50, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Medio'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 90, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 90, ymax = 100, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Excelente'),
+            alpha = 0.5) +
+  geom_vline(xintercept = as.numeric(as.Date("2019-01-01")),
+             linetype = 4, colour = "black") +
+  geom_hline(yintercept=25, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=50, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=90, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=100, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="ICA",
+                    breaks = c("Muy mala", "Mala", 
+                               "Medio", "Buena",
+                               "Excelente"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, 100)) +
+  labs(x = "Fechas de registro", y = "ICA-NFS QWI", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad fisicoquímica: Fuentes abastecedoras Vegachí (Zenufaná)",
+          subtitle = "Registro histórico del ICA-NFA QWI para diferentes fuentes abastecedoras monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(vega_fq2$Fecha), max(vega_fq2$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 2, scales = "free")
+  
+```
+
+\section*{\centering Introducción}
+En el presente reporte se resumen los aspectos más relaventes relacionados al monitoreo del recurso hídrico que ha efectuado Piragua en el municipio de Vegachí. El reporte se divide en tres secciones: monitoreos fisicoquímicos de fuentes abastecedoras, monitoreos hidrobiológicos de fuentes abastecedoras y monitoreo histórico de la precipitación mediante los datos que provee la estación automática que se encuentra ubicada en el municipio. 
+
+
+\section{Monitoreos fisicoquímicos}
+
+El monitoreo fisicoquímico es el proceso mediante el cual se analizan diversos parámetros físicos, químicos y microbiológicos en muestras de agua, de modo que se pueda conocer la calidad de un cuerpo de agua, esto con el fin de emprender acciones de conservación o tratamiento y prevenir enfermedades causadas por la contaminación de este recurso.
+
+\subsection{Resumen gráfico histórico de los monitoreos fisicoquímicos llevados a cabo por Piragua}
+
+En la Figura \ref{fig:fig_FQ} se presenta el comportamiento histórico del ICA-NSF WQI (*Water Quality Index*), un índice de calidad del agua propuesto por la *National Sanity Foundation* en EE.UU.. Este índice es empleado para evaluar el grado de contaminación en las fuentes monitoreadas en la cuenca.   
+
+```{r, echo = F, message = F, warning = F, fig.cap = "\\label{fig:fig_FQ}Registro histórico de la calidad fisicoquímica del agua en fuentes hídricas de Vegachí (Elaboración Propia).",fig.pos='H'}
+q
+```
+
+Las categorías mostradas en colores en la Figura \ref{fig:fig_FQ} designan el tipo de calidad fisicoquímica de la cuenca de acuerdo a los valores del ICA-NFS QWI obtenidos para cada cuente monitoreada. Tales categorías se describen en detalle en la Tabla \ref{calidad_FQ}. Las líneas puntedas verticales que parten el año **2019** son marcas empleadas para denotar el año de partida sobre el que se pretende enfatizar en este reporte. 
+
+\vspace{2cm}
+
+\begin{table}[H]
+\caption{Valoración y determinación de la calidad fisicoquímica del agua}
+\label{calidad_FQ}
+\vspace{0.3 cm}
+\centering
+\begin{tabular}{||c | c | c||} 
+ \hline
+ \textbf{Calidad} & \textbf{Valor} & \textbf{Significado: abastecimiento}\\ [0.5ex] 
+ \hline\hline
+ {\cellcolor[HTML]{0000FF}Excelente} & $91-100$  & Requiere ligera purificación\\
+ \hline
+ {\cellcolor[HTML]{008000}Buena} & $71-90$ & Mejorar o implementar proceso de purificación para consumo\\
+ \hline
+ {\cellcolor[HTML]{FFFF00}Medio} & $51-70$ & Dudoso su consumo\\ 
+ \hline
+ {\cellcolor[HTML]{FFA500}Mala} & $26-50$ & Tratamiento severo de potabilización\\
+ \hline
+ {\cellcolor[HTML]{FF0000}Crítica} & $0-45$ & Recomendable no consumir\\[1ex]
+ \hline
+\end{tabular}
+\end{table}
+
+\subsection{Resumen tabulado ICA-NFS WQI para las fuentes hídricas monitoreadas desde 2019}
+
+```{r,echo = F, message = F, warning = F}
+kbl(vega_fq2_t, longtable = T, booktabs = T, align = "c", caption = "Resumen resultados ICA-NFS WQI para fuentes hídricas monitoreadas en Vegachí desde 2019.") %>%
+  kable_styling(latex_options =c("striped", "repeat_header")) %>% 
+  kable_styling(position = "center")
+```
+
+\section{Monitoreos hidrobiológicos}
+
+El monitoreo hidrobiológico es el proceso sistemático de recolectar diversos organismos de un cuerpo de agua para determinar su calidad. Este monitoreo permite identificar cambios ocurridos en la calidad del agua mediante observaciones y registros periódicos de la presencia de macroinvertebrados. Estos animales proporcionan excelentes señales sobre la calidad del agua porque algunos de ellos requieren buenas condiciones para sobrevivir, mientras otros resisten, crecen y abundan en sitios donde hay contaminación.
+
+\subsection{Resumen gráfico histórico de los monitoreos hidrobiológicos llevados a cabo por Piragua}
+
+En la Figura \ref{fig:fig_HB} se presenta el comportamiento histórico del Índice Biológico BMWP/Col (*Biological Monitoring Working Party score*) adaptado a Colombia para las fuentes hídricas monitoreadas por Piragua.
+
+```{r, echo = F, message = F, warning = F, fig.cap = "\\label{fig:fig_HB}Registro histórico de la calidad hidrobiológica del agua en fuentes hídricas de Vegachí (Elaboración Propia)."}
+p
+```
+  
+Las categorías mostradas en colores en la Figura \ref{fig:fig_HB} designan el tipo de calidad biológica del agua de acuerdo a los valores del BMWP/Col obtenidos. Tales categorías se describen en detalle en la Tabla \ref{calidad_HB}. Las líneas puntedas verticales que parten el año **2019** son marcas empleadas para denotar el año de partida sobre el que se pretende enfatizar en este reporte. 
+
+\vspace{2cm}
+
+\begin{table}[H]
+\caption{Valoración y determinación de la calidad hidrobiológica del agua}
+\label{calidad_HB}
+\vspace{0.3 cm}
+\centering
+\begin{tabular}{||c | c | c||} 
+ \hline
+ \textbf{Calidad} & \textbf{Valor} & \textbf{Significado}\\ [0.5ex] 
+ \hline\hline
+ \cellcolor[HTML]{0000FF} & $\geq150$  & Aguas muy limpias\\
+ \multirow{-2}{*}{\cellcolor[HTML]{0000FF}Buena} & 123-149 & Aguas no contaminadas\\
+ \hline
+ {\cellcolor[HTML]{008000}Aceptable} & $71-122$ & Ligeramente contaminadas: se evidencian efectos\\ 
+ \hline
+ {\cellcolor[HTML]{FFFF00}Dudosa} & $46-70$ & Aguas moderadamente contaminadas\\
+ \hline
+ {\cellcolor[HTML]{FFA500}Crítica} & $21-45$ & Aguas muy contaminadas\\
+ \hline
+ {\cellcolor[HTML]{FF0000}Muy crítica} & $< 20$ & Aguas fuertemente contaminadas\\ [1ex]
+ \hline
+\end{tabular}
+\end{table}
+
+\subsection{Resumen tabulado índices BMWP/Col para las fuentes hídricas monitoreadas desde 2019}
+
+```{r,echo = F, message = F, warning = F}
+kbl(vega_bmwp_t, longtable = T, booktabs = T, align = "c", caption = "Resumen resultados BMWP/Col fuentes hídricas monitoreadas en Vegachí desde 2019.") %>%
+  kable_styling(latex_options =c("striped", "repeat_header")) %>% 
+  kable_styling(position = "center")
+```
+
+\section{Monitoreo de cantidad de precipitación}
+
+En el edificio de la Alcaldía de Vegachí, se encuentra instalado un pluviógrafo automático, el cuál es un dispositivo que registra la cantidad de lluvia que cae en un área determinada (mm de lluvia).  Este dispositivo, a su vez, envía la información a un servidor de datos para su posterior almacenamiento, análisis y publicación. 
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+load("/home/usanovich/Documentos/Google Drive/Piragua/Vegachí/Lluvia/lluvia_vega.Rda")
+
+lluvia2 = lluvia
+lluvia_d <-  lluvia2 %>% 
+  group_by(day = floor_date(fechas, "day")) %>% 
+  dplyr::summarise(acum = sum(muestra))
+
+lluvia2$fechas <- ymd_hms(lluvia2$fechas, tz = "America/Bogota")
+
+lluvia_m <- lluvia2 %>% 
+  group_by(month = floor_date(fechas, "month")) %>% 
+  dplyr::summarise(acum = sum(muestra))
+
+lluvia_d$day <- as.Date(lluvia_d$day)
+lluvia_m$month <- as.Date(lluvia_m$month)
+
+lluvia_d$year <- as.factor(format(lluvia_d$day, "%Y"))
+lluvia_m$year <- as.factor(format(lluvia_m$month, "%Y"))
+
+p1 <- ggplot(data = lluvia_d, aes(x = day, y = acum)) +
+  geom_line(colour = "#468AC1") +
+  geom_vline(xintercept = as.numeric(as.Date("2019-01-01")),
+             linetype = 4, colour = "black") +
+  labs(x = "Años de registro", y = "Precipitación acumulada diaria [mm]") +
+  ggtitle(label = "Monitoreo de precipitación: Vegachí (Zenufaná)",
+          subtitle = "Registro histórico de la precipitación en Vegachí (Estación edificio alcaldía)*") +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+  theme_stata() +
+  theme(text = element_text(size = 9), plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed"))
+p2 <- ggplot(data = lluvia_m, aes(x = month, y = acum)) +
+  geom_line(colour = "#468AC1") +
+  geom_point(size = 1) +
+  geom_vline(xintercept = as.numeric(as.Date("2019-01-01")),
+             linetype = 4, colour = "black") +
+  labs(x = "Años de registro", y = "Precipitación acumulada mensual [mm]",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia.
+       La calidad de los datos no ha sido verificada exhaustivamente*.") +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+  theme_stata() +
+  theme(text = element_text(size = 9),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed"))
+
+```
+
+En la Figura \ref{fig:fig_preci} se dilucidan los históricos, mediante series temporales diarias y mensuales, para la precipitación en este municipio.  
+
+```{r, echo = F, message = F, warning = F, fig.cap = "\\label{fig:fig_preci}Series de tiempo para la precipitación histórica diaria y mensual en el municipio de Vegachí  (Elaboración Propia)."}
+
+grid.arrange(p1, p2, nrow = 2)
+
+```
+
+

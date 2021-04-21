@@ -1,0 +1,1893 @@
+---
+title: "**Reporte de calidad hidrobiológica y fisicoquímica del recurso hídrico: Río Medellín y fuentes que desembocan en este río**"
+output: 
+  pdf_document:
+    number_sections: true
+    fig_caption: yes
+    extra_dependencies: ["float"]
+header-includes:
+  - \usepackage{comment}
+  - \usepackage{graphicx}
+  - \usepackage{booktabs}
+  - \usepackage{xcolor}
+  - \usepackage{longtable}
+  - \usepackage{multirow}
+  - \usepackage{wrapfig}
+  - \usepackage{float}
+  - \usepackage{colortbl}
+  - \usepackage{pdflscape}
+  - \usepackage{tabu}
+  - \usepackage{threeparttable}
+  - \usepackage{threeparttablex}
+  - \usepackage[normalem]{ulem}
+  - \usepackage{makecell}
+  - \usepackage{xcolor}
+  - \usepackage[spanish,es-tabla]{babel}
+  - \usepackage{titling}
+  - \pretitle{\begin{center}
+    \includegraphics[width=4in,height=4in]{"/home/usanovich/Documentos/Google Drive/Piragua/Río Aburrá Reporte/logo_combi.png"}\LARGE\\}
+  - \posttitle{\end{center}} 
+  - \setlength{\abovecaptionskip}{-13pt}
+  - \floatplacement{figure}{H}
+---
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(dplyr)
+library(plyr)
+library(ggthemes)
+library(lubridate)
+library(gridExtra)
+library(kableExtra)
+library(knitr)
+
+library(readxl)
+rio_aburra_hb <- read_excel("rio_aburra_hb.xlsx", 
+    col_types = c("text", "date", "numeric", 
+        "text", "text", "text", "text", "numeric", 
+        "numeric", "numeric", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "numeric", "numeric", "text", "text", 
+        "text", "text", "text"))
+
+rio_aburra_hb$Fecha <- as.Date(rio_aburra_hb$fecha)
+
+rio_aburra_hb$fuente <- as.factor(rio_aburra_hb$fuente)
+
+rio_aburra_bmwp <- rio_aburra_hb %>% 
+  group_by(Fecha, anno, campana, fuente, municipio) %>% 
+  dplyr::summarise(BMWP_fuente = sum(bmwp))
+
+colnames(rio_aburra_bmwp) <- c("Fecha", "Año",
+                           "Campaña", "Fuente",
+                           "Municipio","BMWP_fuente")
+
+max_mbwp <-  round_any(max(rio_aburra_bmwp$BMWP_fuente), 10)
+
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(dplyr)
+library(plyr)
+library(ggthemes)
+library(lubridate)
+library(gridExtra)
+library(kableExtra)
+library(knitr)
+
+library(readxl)
+rio_aburra <- read_excel("rio_aburra.xlsx", 
+    col_types = c("text", "text", "text", 
+        "text", "text", "text", "text", "date", 
+        "numeric", "text"))
+
+rio_aburra$Fecha <- as.Date(rio_aburra$Fecha)
+
+rio_aburra$Fuente <- as.factor(rio_aburra$Fuente)
+
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+
+quality_Barbosa <- rio_aburra %>% 
+  filter(Municipio == "Barbosa")
+
+plotq_Barbosa <- 
+  ggplot(data = quality_Barbosa, aes(x = Fecha, y = ICA)) +
+  geom_rect(aes(ymin = 0, ymax = 25, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 25, ymax = 50, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 50, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Medio'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 90, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 90, ymax = 100, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Excelente'),
+            alpha = 0.5) +
+  geom_hline(yintercept=25, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=50, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=90, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=100, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="ICA",
+                    breaks = c("Muy mala", "Mala", 
+                               "Medio", "Buena",
+                               "Excelente"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, 100)) +
+  labs(x = "Fechas de registro", y = "ICA-NFS QWI", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad fisicoquímica: Fuentes monitoreadas (Barbosa)",
+          subtitle = "Registro histórico del ICA-NFS QWI para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1.1) +
+  theme_stata() +
+  theme(text = element_text(size = 6.8), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(rio_aburra$Fecha), max(rio_aburra$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 4, scales = "free")
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+
+quality_Bello <- rio_aburra %>% 
+  filter(Municipio == "Bello")
+
+plotq_Bello <- 
+  ggplot(data = quality_Bello, aes(x = Fecha, y = ICA)) +
+  geom_rect(aes(ymin = 0, ymax = 25, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 25, ymax = 50, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 50, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Medio'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 90, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 90, ymax = 100, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Excelente'),
+            alpha = 0.5) +
+  geom_hline(yintercept=25, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=50, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=90, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=100, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="ICA",
+                    breaks = c("Muy mala", "Mala", 
+                               "Medio", "Buena",
+                               "Excelente"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, 100)) +
+  labs(x = "Fechas de registro", y = "ICA-NFS QWI", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad fisicoquímica: Fuentes monitoreadas (Bello)",
+          subtitle = "Registro histórico del ICA-NFS QWI para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1.1) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(quality_Bello$Fecha), max(quality_Bello$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 4, scales = "free_x")
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+
+quality_Copacabana <- rio_aburra %>% 
+  filter(Municipio == "Copacabana")
+
+plotq_Copacabana <- 
+  ggplot(data = quality_Copacabana, aes(x = Fecha, y = ICA)) +
+  geom_rect(aes(ymin = 0, ymax = 25, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 25, ymax = 50, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 50, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Medio'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 90, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 90, ymax = 100, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Excelente'),
+            alpha = 0.5) +
+  geom_hline(yintercept=25, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=50, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=90, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=100, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="ICA",
+                    breaks = c("Muy mala", "Mala", 
+                               "Medio", "Buena",
+                               "Excelente"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, 100)) +
+  labs(x = "Fechas de registro", y = "ICA-NFS QWI", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad fisicoquímica: Fuentes monitoreadas (Copacabana)",
+          subtitle = "Registro histórico del ICA-NFS QWI para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1.1) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(quality_Copacabana$Fecha), max(quality_Copacabana$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 4, scales = "free_x")
+
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+
+quality_Caldas <- rio_aburra %>% 
+  filter(Municipio == "Caldas")
+
+plotq_Caldas <- 
+  ggplot(data = quality_Caldas, aes(x = Fecha, y = ICA)) +
+  geom_rect(aes(ymin = 0, ymax = 25, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 25, ymax = 50, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 50, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Medio'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 90, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 90, ymax = 100, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Excelente'),
+            alpha = 0.5) +
+  geom_hline(yintercept=25, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=50, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=90, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=100, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="ICA",
+                    breaks = c("Muy mala", "Mala", 
+                               "Medio", "Buena",
+                               "Excelente"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, 100)) +
+  labs(x = "Fechas de registro", y = "ICA-NFS QWI", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad fisicoquímica: Fuentes monitoreadas (Caldas)",
+          subtitle = "Registro histórico del ICA-NFS QWI para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 0.9) +
+  theme_stata() +
+  theme(text = element_text(size = 8), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(quality_Caldas$Fecha), max(quality_Caldas$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 4, scales = "free_x")
+
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+
+quality_Don <- rio_aburra %>% 
+  filter(Municipio == "Donmatías")
+
+plotq_Don <- 
+  ggplot(data = quality_Don, aes(x = Fecha, y = ICA)) +
+  geom_rect(aes(ymin = 0, ymax = 25, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 25, ymax = 50, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 50, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Medio'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 90, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 90, ymax = 100, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Excelente'),
+            alpha = 0.5) +
+  geom_hline(yintercept=25, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=50, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=90, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=100, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="ICA",
+                    breaks = c("Muy mala", "Mala", 
+                               "Medio", "Buena",
+                               "Excelente"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, 100)) +
+  labs(x = "Fechas de registro", y = "ICA-NFS QWI", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad fisicoquímica: Fuentes monitoreas (Donmatías)",
+          subtitle = "Registro histórico del ICA-NFS QWI para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1.3) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(quality_Don$Fecha), max(quality_Don$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 5, scales = "free_x")
+
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+
+quality_Envigado <- rio_aburra %>% 
+  filter(Municipio == "Envigado")
+
+plotq_Envigado <- 
+  ggplot(data = quality_Envigado, aes(x = Fecha, y = ICA)) +
+  geom_rect(aes(ymin = 0, ymax = 25, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 25, ymax = 50, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 50, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Medio'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 90, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 90, ymax = 100, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Excelente'),
+            alpha = 0.5) +
+  geom_hline(yintercept=25, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=50, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=90, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=100, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="ICA",
+                    breaks = c("Muy mala", "Mala", 
+                               "Medio", "Buena",
+                               "Excelente"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, 100)) +
+  labs(x = "Fechas de registro", y = "ICA-NFS QWI", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad fisicoquímica: Fuentes monitoreadas (Envigado)",
+          subtitle = "Registro histórico del ICA-NFS QWI para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1.3) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(quality_Envigado$Fecha), max(quality_Envigado$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 4, scales = "free_x")
+
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+
+quality_Girardota <- rio_aburra %>% 
+  filter(Municipio == "Girardota")
+
+plotq_Girardota <- 
+  ggplot(data = quality_Girardota, aes(x = Fecha, y = ICA)) +
+  geom_rect(aes(ymin = 0, ymax = 25, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 25, ymax = 50, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 50, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Medio'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 90, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 90, ymax = 100, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Excelente'),
+            alpha = 0.5) +
+  geom_hline(yintercept=25, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=50, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=90, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=100, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="ICA",
+                    breaks = c("Muy mala", "Mala", 
+                               "Medio", "Buena",
+                               "Excelente"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, 100)) +
+  labs(x = "Fechas de registro", y = "ICA-NFS QWI", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad fisicoquímica: Fuentes monitoreadas (Girardota)",
+          subtitle = "Registro histórico del ICA-NFS QWI para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1.1) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(quality_Girardota$Fecha), max(quality_Girardota$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 4, scales = "free_x")
+
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+
+quality_Estrella <- rio_aburra %>% 
+  filter(Municipio == "La Estrella")
+
+plotq_Estrella <- 
+  ggplot(data = quality_Estrella, aes(x = Fecha, y = ICA)) +
+  geom_rect(aes(ymin = 0, ymax = 25, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 25, ymax = 50, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 50, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Medio'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 90, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 90, ymax = 100, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Excelente'),
+            alpha = 0.5) +
+  geom_hline(yintercept=25, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=50, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=90, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=100, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="ICA",
+                    breaks = c("Muy mala", "Mala", 
+                               "Medio", "Buena",
+                               "Excelente"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, 100)) +
+  labs(x = "Fechas de registro", y = "ICA-NFS QWI", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad fisicoquímica: Fuentes abastecedoras (La Estrella)",
+          subtitle = "Registro histórico del ICA-NFS QWI para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1.1) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(quality_Estrella$Fecha), max(quality_Estrella$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 4, scales = "free_x")
+
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+
+quality_Medellín <- rio_aburra %>% 
+  filter(Municipio == "Medellín")
+
+plotq_Medellín <- 
+  ggplot(data = quality_Medellín, aes(x = Fecha, y = ICA)) +
+  geom_rect(aes(ymin = 0, ymax = 25, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 25, ymax = 50, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 50, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Medio'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 90, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 90, ymax = 100, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Excelente'),
+            alpha = 0.5) +
+  geom_hline(yintercept=25, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=50, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=90, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=100, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="ICA",
+                    breaks = c("Muy mala", "Mala", 
+                               "Medio", "Buena",
+                               "Excelente"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, 100)) +
+  labs(x = "Fechas de registro", y = "ICA-NFS QWI", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad fisicoquímica: Fuentes monitoreadas (Medellín)",
+          subtitle = "Registro histórico del ICA-NFS QWI para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1.1) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(quality_Medellín$Fecha), max(quality_Medellín$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 4, scales = "free_x")
+
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+
+quality_Sabaneta <- rio_aburra %>% 
+  filter(Municipio == "Sabaneta")
+
+plotq_Sabaneta <- 
+  ggplot(data = quality_Sabaneta, aes(x = Fecha, y = ICA)) +
+  geom_rect(aes(ymin = 0, ymax = 25, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 25, ymax = 50, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 50, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Medio'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 90, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 90, ymax = 100, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Excelente'),
+            alpha = 0.5) +
+  geom_hline(yintercept=25, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=50, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=90, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=100, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="ICA",
+                    breaks = c("Muy mala", "Mala", 
+                               "Medio", "Buena",
+                               "Excelente"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, 100)) +
+  labs(x = "Fechas de registro", y = "ICA-NFS QWI", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad fisicoquímica: Fuentes monitoreadas (Sabaneta)",
+          subtitle = "Registro histórico del ICA-NFS QWI para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1.4) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(quality_Sabaneta$Fecha), max(quality_Sabaneta$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 4, scales = "free_x")
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+
+quality_Itagui <- rio_aburra %>% 
+  filter(Municipio == "Itagüí")
+
+plotq_Itagui <- 
+  ggplot(data = quality_Itagui, aes(x = Fecha, y = ICA)) +
+  geom_rect(aes(ymin = 0, ymax = 25, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 25, ymax = 50, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Mala'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 50, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Medio'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 90, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 90, ymax = 100, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Excelente'),
+            alpha = 0.5) +
+  geom_hline(yintercept=25, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=50, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=90, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=100, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="ICA",
+                    breaks = c("Muy mala", "Mala", 
+                               "Medio", "Buena",
+                               "Excelente"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, 100)) +
+  labs(x = "Fechas de registro", y = "ICA-NFS QWI", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad fisicoquímica: Fuentes monitoreadas (Itagüí)",
+          subtitle = "Registro histórico del ICA-NFS QWI para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1.4) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(quality_Itagui$Fecha), max(quality_Itagui$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 4, scales = "free_x")
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+# Barbosa
+
+quality_Barbosa_HB <- rio_aburra_bmwp %>% 
+  filter(Municipio == "Barbosa")
+
+hb_barbosa <- ggplot(data = quality_Barbosa_HB, aes(x = Fecha, y = BMWP_fuente)) +
+  geom_rect(aes(ymin = 0, ymax = 20, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy crítica'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 20, ymax = 45, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Crítica',
+                ),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 45, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Dudosa'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 122, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Aceptable'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 122, ymax = max(quality_Barbosa_HB$BMWP_fuente), 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_vline(xintercept = as.numeric(as.Date("2019-01-01")),
+             linetype = 4, colour = "black") +
+  geom_hline(yintercept=20, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=45, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=70, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=122, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="BMWP/Col",
+                    breaks = c("Muy crítica", "Crítica", 
+                               "Dudosa", "Aceptable",
+                               "Buena"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, max_mbwp)) +
+  labs(x = "Años de registro", y = "BMWP/Col", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad hidrobiológica: Fuentes monitoreadas (Barbosa)",
+          subtitle = "Registro histórico del Índice BMWP/Col para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(quality_Barbosa_HB$Fecha), max(quality_Barbosa_HB$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 3, scales = "free")
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+# Bello
+
+quality_Bello_HB <- rio_aburra_bmwp %>% 
+  filter(Municipio == "Bello")
+
+hb_bello <- ggplot(data = quality_Bello_HB, aes(x = Fecha, y = BMWP_fuente)) +
+  geom_rect(aes(ymin = 0, ymax = 20, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy crítica'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 20, ymax = 45, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Crítica',
+                ),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 45, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Dudosa'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 122, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Aceptable'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 122, ymax = 130, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_hline(yintercept=20, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=45, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=70, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=122, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="BMWP/Col",
+                    breaks = c("Muy crítica", "Crítica", 
+                               "Dudosa", "Aceptable",
+                               "Buena"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, max_mbwp)) +
+  labs(x = "Años de registro", y = "BMWP/Col", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad hidrobiológica: Fuentes monitoreadas (Bello)",
+          subtitle = "Registro histórico del Índice BMWP/Col para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1.3) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(quality_Bello_HB$Fecha), max(quality_Bello_HB$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 3, scales = "free")
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+# Copacabana
+
+quality_Copa_HB <- rio_aburra_bmwp %>% 
+  filter(Municipio == "Copacabana")
+
+hb_copa <- ggplot(data = quality_Copa_HB, aes(x = Fecha, y = BMWP_fuente)) +
+  geom_rect(aes(ymin = 0, ymax = 20, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy crítica'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 20, ymax = 45, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Crítica',
+                ),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 45, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Dudosa'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 122, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Aceptable'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 122, ymax = 150, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_hline(yintercept=20, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=45, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=70, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=122, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="BMWP/Col",
+                    breaks = c("Muy crítica", "Crítica", 
+                               "Dudosa", "Aceptable",
+                               "Buena"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, max_mbwp)) +
+  labs(x = "Años de registro", y = "BMWP/Col", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad hidrobiológica: Fuentes monitoreadas (Copacabana)",
+          subtitle = "Registro histórico del Índice BMWP/Col para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(quality_Copa_HB$Fecha), max(quality_Copa_HB$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 3, scales = "free")
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+# Caldas
+
+quality_Cal_HB <- rio_aburra_bmwp %>% 
+  filter(Municipio == "Caldas")
+
+hb_cal <- ggplot(data = quality_Cal_HB, aes(x = Fecha, y = BMWP_fuente)) +
+  geom_rect(aes(ymin = 0, ymax = 20, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy crítica'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 20, ymax = 45, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Crítica',
+                ),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 45, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Dudosa'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 122, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Aceptable'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 122, ymax = 180, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_hline(yintercept=20, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=45, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=70, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=122, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="BMWP/Col",
+                    breaks = c("Muy crítica", "Crítica", 
+                               "Dudosa", "Aceptable",
+                               "Buena"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, max_mbwp)) +
+  labs(x = "Años de registro", y = "BMWP/Col", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad hidrobiológica: Fuentes monitoreadas (Donmatías)",
+          subtitle = "Registro histórico del Índice BMWP/Col para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(quality_Cal_HB$Fecha), max(quality_Cal_HB$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 3, scales = "free")
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+# Caldas
+
+quality_Cal_HB <- rio_aburra_bmwp %>% 
+  filter(Municipio == "Caldas")
+
+hb_cal <- ggplot(data = quality_Cal_HB, aes(x = Fecha, y = BMWP_fuente)) +
+  geom_rect(aes(ymin = 0, ymax = 20, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy crítica'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 20, ymax = 45, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Crítica',
+                ),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 45, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Dudosa'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 122, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Aceptable'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 122, ymax = 180, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_hline(yintercept=20, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=45, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=70, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=122, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="BMWP/Col",
+                    breaks = c("Muy crítica", "Crítica", 
+                               "Dudosa", "Aceptable",
+                               "Buena"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, max_mbwp)) +
+  labs(x = "Años de registro", y = "BMWP/Col", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad hidrobiológica: Fuentes monitoreadas (Caldas)",
+          subtitle = "Registro histórico del Índice BMWP/Col para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(quality_Cal_HB$Fecha), max(quality_Cal_HB$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 3, scales = "free")
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+# Donmatías
+
+quality_Don_HB <- rio_aburra_bmwp %>% 
+  filter(Municipio == "Donmatías")
+
+hb_don <- ggplot(data = quality_Don_HB, aes(x = Fecha, y = BMWP_fuente)) +
+  geom_rect(aes(ymin = 0, ymax = 20, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy crítica'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 20, ymax = 45, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Crítica',
+                ),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 45, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Dudosa'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 122, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Aceptable'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 122, ymax = 150, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_hline(yintercept=20, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=45, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=70, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=122, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="BMWP/Col",
+                    breaks = c("Muy crítica", "Crítica", 
+                               "Dudosa", "Aceptable",
+                               "Buena"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, max_mbwp)) +
+  labs(x = "Años de registro", y = "BMWP/Col", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad hidrobiológica: Fuentes monitoreadas (Donmatías)",
+          subtitle = "Registro histórico del Índice BMWP/Col para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(quality_Don_HB$Fecha), max(quality_Don_HB$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 3, scales = "free")
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+# Envigado
+
+quality_Env_HB <- rio_aburra_bmwp %>% 
+  filter(Municipio == "Envigado")
+
+hb_env <- ggplot(data = quality_Env_HB, aes(x = Fecha, y = BMWP_fuente)) +
+  geom_rect(aes(ymin = 0, ymax = 20, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy crítica'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 20, ymax = 45, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Crítica',
+                ),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 45, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Dudosa'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 122, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Aceptable'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 122, ymax = 180, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_hline(yintercept=20, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=45, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=70, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=122, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="BMWP/Col",
+                    breaks = c("Muy crítica", "Crítica", 
+                               "Dudosa", "Aceptable",
+                               "Buena"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, max_mbwp)) +
+  labs(x = "Años de registro", y = "BMWP/Col", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad hidrobiológica: Fuentes monitoreadas (Envigado)",
+          subtitle = "Registro histórico del Índice BMWP/Col para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(quality_Env_HB$Fecha), max(quality_Env_HB$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 3, scales = "free")
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+# Girardota
+
+quality_Gira_HB <- rio_aburra_bmwp %>% 
+  filter(Municipio == "Girardota")
+
+hb_gira <- ggplot(data = quality_Gira_HB, aes(x = Fecha, y = BMWP_fuente)) +
+  geom_rect(aes(ymin = 0, ymax = 20, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy crítica'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 20, ymax = 45, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Crítica',
+                ),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 45, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Dudosa'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 122, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Aceptable'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 122, ymax = 190, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_hline(yintercept=20, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=45, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=70, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=122, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="BMWP/Col",
+                    breaks = c("Muy crítica", "Crítica", 
+                               "Dudosa", "Aceptable",
+                               "Buena"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, max_mbwp)) +
+  labs(x = "Años de registro", y = "BMWP/Col", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad hidrobiológica: Fuentes monitoreadas (La Estrella)",
+          subtitle = "Registro histórico del Índice BMWP/Col para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1.4) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(quality_Gira_HB$Fecha), max(quality_Gira_HB$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 3, scales = "free")
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+# Itaguí
+
+quality_Ita_HB <- rio_aburra_bmwp %>% 
+  filter(Municipio == "Itagüí")
+
+hb_ita <- ggplot(data = quality_Ita_HB, aes(x = Fecha, y = BMWP_fuente)) +
+  geom_rect(aes(ymin = 0, ymax = 20, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy crítica'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 20, ymax = 45, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Crítica',
+                ),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 45, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Dudosa'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 122, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Aceptable'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 122, ymax = 170, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_hline(yintercept=20, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=45, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=70, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=122, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="BMWP/Col",
+                    breaks = c("Muy crítica", "Crítica", 
+                               "Dudosa", "Aceptable",
+                               "Buena"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, max_mbwp)) +
+  labs(x = "Años de registro", y = "BMWP/Col", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad hidrobiológica: Fuentes monitoreadas (Itaguí)",
+          subtitle = "Registro histórico del Índice BMWP/Col para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1.3) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(quality_Ita_HB$Fecha), max(quality_Ita_HB$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 3, scales = "free")
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+# La Estrella
+
+quality_Estre_HB <- rio_aburra_bmwp %>% 
+  filter(Municipio == "La Estrella")
+
+hb_estre <- ggplot(data = quality_Estre_HB, aes(x = Fecha, y = BMWP_fuente)) +
+  geom_rect(aes(ymin = 0, ymax = 20, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy crítica'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 20, ymax = 45, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Crítica',
+                ),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 45, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Dudosa'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 122, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Aceptable'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 122, ymax = 190, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_hline(yintercept=20, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=45, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=70, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=122, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="BMWP/Col",
+                    breaks = c("Muy crítica", "Crítica", 
+                               "Dudosa", "Aceptable",
+                               "Buena"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, max_mbwp)) +
+  labs(x = "Años de registro", y = "BMWP/Col", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad hidrobiológica: Fuentes monitoreadas (La Estrella)",
+          subtitle = "Registro histórico del Índice BMWP/Col para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(quality_Estre_HB$Fecha), max(quality_Estre_HB$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 3, scales = "free")
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+# Medellín
+
+quality_Mede_HB <- rio_aburra_bmwp %>% 
+  filter(Municipio == "Medellín")
+
+hb_mede <- ggplot(data = quality_Mede_HB, aes(x = Fecha, y = BMWP_fuente)) +
+  geom_rect(aes(ymin = 0, ymax = 20, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy crítica'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 20, ymax = 45, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Crítica',
+                ),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 45, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Dudosa'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 122, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Aceptable'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 122, ymax = 200, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_hline(yintercept=20, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=45, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=70, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=122, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="BMWP/Col",
+                    breaks = c("Muy crítica", "Crítica", 
+                               "Dudosa", "Aceptable",
+                               "Buena"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, max_mbwp)) +
+  labs(x = "Años de registro", y = "BMWP/Col", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad hidrobiológica: Fuentes monitoreadas (Medellín)",
+          subtitle = "Registro histórico del Índice BMWP/Col para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.5) +
+  geom_point(size = 1) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(quality_Mede_HB$Fecha), max(quality_Mede_HB$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 4, scales = "free")
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+# Sabaneta
+
+quality_Saba_HB <- rio_aburra_bmwp %>% 
+  filter(Municipio == "Sabaneta")
+
+hb_saba <- ggplot(data = quality_Saba_HB, aes(x = Fecha, y = BMWP_fuente)) +
+  geom_rect(aes(ymin = 0, ymax = 20, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Muy crítica'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 20, ymax = 45, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Crítica',
+                ),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 45, ymax = 70, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Dudosa'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 70, ymax = 122, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Aceptable'),
+            alpha = 0.5) +
+  geom_rect(aes(ymin = 122, ymax = 170, 
+                xmin = as.Date(min(Fecha),"%Y-%m-%d"), 
+                xmax = as.Date(max(Fecha),"%Y-%m-%d"), fill = 'Buena'),
+            alpha = 0.5) +
+  geom_hline(yintercept=20, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=45, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=70, linetype="dashed", 
+             color = "black", size=0.3) +
+  geom_hline(yintercept=122, linetype="dashed", 
+             color = "black", size=0.3) +
+  scale_fill_manual(name="BMWP/Col",
+                    breaks = c("Muy crítica", "Crítica", 
+                               "Dudosa", "Aceptable",
+                               "Buena"),
+                    values= c("red", "orange",
+                              "yellow","green",
+                              "blue")) +
+  coord_cartesian(ylim = c(0, max_mbwp)) +
+  labs(x = "Años de registro", y = "BMWP/Col", 
+       color = "Legend",
+       caption = "Gráficos construidos con datos de Piragua-Corantioquia*") +
+  ggtitle(label = "Calidad hidrobiológica: Fuentes monitoreadas (Sabaneta)",
+          subtitle = "Registro histórico del Índice BMWP/Col para diferentes fuentes monitoreadas*") +
+  geom_line(linetype = "dotdash", size = 0.7) +
+  geom_point(size = 1.3) +
+  theme_stata() +
+  theme(text = element_text(size = 9), 
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        panel.grid.major = element_line(colour = "gray",
+                                        linetype = "dashed",
+                                        size = 0.3),
+        axis.title = element_text(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(),
+        strip.background =element_rect(fill="#addff4"),
+        legend.text = element_text(),
+        legend.title = element_text()) +
+  scale_x_date(limits = c(min(quality_Saba_HB$Fecha), max(quality_Saba_HB$Fecha)),
+               date_labels = "%Y", date_breaks = "1 year") +
+  facet_wrap(~ Fuente, nrow = 2, scales = "free")
+```
+
+# Introducción
+
+En el actual reporte se presentan de forma resumida los resultados obtenidos, a nivel histórico, relacionados al monitoreo del recurso hídrico que ha efectuado Piragua en el Río Medellín y en las fuentes hídricas que desembocan en este. Para esto se recurre a la visualización gráfica de la calidad del agua, desde el punto de vista fisicoquímico e hidrobiológico, agrupando las fuentes hídricas por municipios para amenizar la puesta a punto de estos resultados.  
+
+# Monitoreo Fisicoquímico
+
+El monitoreo fisicoquímico es el proceso mediante el cual se analizan diversos parámetros físicos, químicos y microbiológicos en muestras de agua, de modo que se pueda conocer la calidad de un cuerpo de agua, esto con el fin de emprender acciones de conservación o tratamiento y prevenir enfermedades causadas por la contaminación de este recurso.
+
+Las categorías mostradas en colores en la figuras \ref{fig:fig_FQ_Barbosa}-\ref{fig:fig_FQ_Sab} designan el tipo de calidad fisicoquímica de la cuenca de acuerdo a los valores del ICA-NFS QWI obtenidos para cada fuente monitoreada. Tales categorías se describen en detalle en la Tabla \ref{calidad_FQ}. En la figuras \ref{fig:fig_FQ_Barbosa}-\ref{fig:fig_FQ_Sab} se presenta el comportamiento histórico del ICA-NSF WQI (*Water Quality Index*), un índice de calidad del agua propuesto por la *National Sanity Foundation* en EE.UU.. Este índice es empleado para evaluar el grado de contaminación en las fuentes monitoreadas en la cuenca. Sin embargo, es de aclarar al lector que existen fuentes que han sido monitoreadas una sola vez, por lo que su visualización gráfica resulta escueta (un único punto). Para más detalles referentes a estos resultados se puede consultar en el [Geoportal de Piragua-Corantioquia](https://www.piraguacorantioquia.com.co/redes_nuevo/).
+
+\begin{table}[b]
+\caption{Valoración y determinación de la calidad fisicoquímica del agua}
+\label{calidad_FQ}
+\vspace{0.3 cm}
+\centering
+\begin{tabular}{||c | c | c||} 
+ \hline
+ \textbf{Calidad} & \textbf{Valor} & \textbf{Significado: abastecimiento}\\ [0.5ex] 
+ \hline\hline
+ {\cellcolor[HTML]{0000FF}Excelente} & $91-100$  & Requiere ligera purificación\\
+ \hline
+ {\cellcolor[HTML]{008000}Buena} & $71-90$ & Mejorar o implementar proceso de purificación para consumo\\
+ \hline
+ {\cellcolor[HTML]{FFFF00}Medio} & $51-70$ & Dudoso su consumo\\ 
+ \hline
+ {\cellcolor[HTML]{FFA500}Mala} & $26-50$ & Tratamiento severo de potabilización\\
+ \hline
+ {\cellcolor[HTML]{FF0000}Crítica} & $0-45$ & Recomendable no consumir\\[1ex]
+ \hline
+\end{tabular}
+\end{table}
+
+
+## Calidad fisicoquímica del agua: fuentes hídricas Barbosa
+
+```{r, echo = FALSE,message=FALSE, warning=FALSE, fig.height=8,fig.cap = "\\label{fig:fig_FQ_Barbosa}Registro histórico de la calidad fisicoquímica del agua en las fuentes hídricas de Barbosa monitoreadas por Piragua-Corantioquia (Elaboración Propia)."}
+plotq_Barbosa
+```
+
+## Calidad fisicoquímica del agua: fuentes hídricas Bello
+
+```{r, echo = FALSE,message=FALSE, warning=FALSE, fig.height=8,fig.cap = "\\label{fig:fig_FQ_Bello}Registro histórico de la calidad fisicoquímica del agua en las fuentes hídricas de Bello monitoreadas por Piragua-Corantioquia (Elaboración Propia)."}
+plotq_Bello
+```
+
+## Calidad fisicoquímica del agua: fuentes hídricas Caldas
+
+```{r, echo = FALSE,message=FALSE, warning=FALSE, fig.height=7,fig.cap = "\\label{fig:fig_FQ_Caldas}Registro histórico de la calidad fisicoquímica del agua en las fuentes hídricas de Caldas monitoreadas por Piragua-Corantioquia (Elaboración Propia)."}
+plotq_Caldas
+```
+
+## Calidad fisicoquímica del agua: fuentes hídricas Copacabana
+
+```{r, echo = FALSE,message=FALSE, warning=FALSE, fig.height=7,fig.cap = "\\label{fig:fig_FQ_Copa}Registro histórico de la calidad fisicoquímica del agua en las fuentes hídricas de Copacabana monitoreadas por Piragua-Corantioquia (Elaboración Propia)."}
+plotq_Copacabana
+```
+
+## Calidad fisicoquímica del agua: fuentes hídricas Donmatías
+
+```{r, echo = FALSE,message=FALSE, warning=FALSE, fig.height=7,fig.cap = "\\label{fig:fig_FQ_Don}Registro histórico de la calidad fisicoquímica del agua en las fuentes hídricas de Donmatías monitoreadas por Piragua-Corantioquia (Elaboración Propia)."}
+plotq_Don
+```
+
+## Calidad fisicoquímica del agua: fuentes hídricas Envigado
+
+```{r, echo = FALSE,message=FALSE, warning=FALSE, fig.height=8,fig.cap = "\\label{fig:fig_FQ_Env}Registro histórico de la calidad fisicoquímica del agua en las fuentes hídricas de Envigado monitoreadas por Piragua-Corantioquia (Elaboración Propia)."}
+plotq_Envigado
+```
+
+## Calidad fisicoquímica del agua: fuentes hídricas Girardota
+
+```{r, echo = FALSE,message=FALSE, warning=FALSE, fig.height=8,fig.cap = "\\label{fig:fig_FQ_Gira}Registro histórico de la calidad fisicoquímica del agua en las fuentes hídricas de Girardota monitoreadas por Piragua-Corantioquia (Elaboración Propia)."}
+plotq_Girardota
+```
+
+## Calidad fisicoquímica del agua: fuentes hídricas Itagüí
+
+```{r, echo = FALSE,message=FALSE, warning=FALSE, fig.height=8,fig.cap = "\\label{fig:fig_FQ_Ita}Registro histórico de la calidad fisicoquímica del agua en las fuentes hídricas de Itagüí monitoreadas por Piragua-Corantioquia (Elaboración Propia)."}
+plotq_Itagui
+```
+
+## Calidad fisicoquímica del agua: fuentes hídricas La Estrella
+
+```{r, echo = FALSE,message=FALSE, warning=FALSE, fig.height=8,fig.cap = "\\label{fig:fig_FQ_Est}Registro histórico de la calidad fisicoquímica del agua en las fuentes hídricas de La Estrella monitoreadas por Piragua-Corantioquia (Elaboración Propia)."}
+plotq_Estrella
+```
+
+## Calidad fisicoquímica del agua: fuentes hídricas Medellín
+
+```{r, echo = FALSE,message=FALSE, warning=FALSE, fig.height=8,fig.cap = "\\label{fig:fig_FQ_Med}Registro histórico de la calidad fisicoquímica del agua en las fuentes hídricas de Medellín monitoreadas por Piragua-Corantioquia (Elaboración Propia)."}
+plotq_Medellín
+```
+
+## Calidad fisicoquímica del agua: fuentes hídricas Sabaneta
+
+```{r, echo = FALSE,message=FALSE, warning=FALSE, fig.height=8,fig.cap = "\\label{fig:fig_FQ_Sab}Registro histórico de la calidad fisicoquímica del agua en las fuentes hídricas de Sabaneta monitoreadas por Piragua-Corantioquia (Elaboración Propia)."}
+plotq_Sabaneta
+```
+
+# Monitoreo Hidrobiológico
+
+El monitoreo hidrobiológico es el proceso sistemático de recolectar diversos organismos de un cuerpo de agua para determinar su calidad. Este monitoreo permite identificar cambios ocurridos en la calidad del agua mediante observaciones y registros periódicos de la presencia de macroinvertebrados. Estos animales proporcionan excelentes señales sobre la calidad del agua porque algunos de ellos requieren buenas condiciones para sobrevivir, mientras otros resisten, crecen y abundan en sitios donde hay contaminación. 
+
+En las figuras \ref{fig:fig_HB_Bar}-\ref{fig:fig_HB_Sab} se presentan el comportamiento histórico del Índice Biológico BMWP/Col (*Biological Monitoring Working Party score*) adaptado a Colombia para las fuentes hídricas monitoreadas por Piragua. Las categorías mostradas en colores en las figuras \ref{fig:fig_HB_Bar}-\ref{fig:fig_HB_Sab} designan el tipo de calidad biológica del agua de acuerdo a los valores del BMWP/Col obtenidos. Tales categorías se describen en detalle en la Tabla \ref{calidad_HB}.
+
+\vspace{2cm}
+
+\begin{table}[H]
+\caption{Valoración y determinación de la calidad hidrobiológica del agua}
+\label{calidad_HB}
+\vspace{0.3 cm}
+\centering
+\begin{tabular}{||c | c | c||} 
+ \hline
+ \textbf{Calidad} & \textbf{Valor} & \textbf{Significado}\\ [0.5ex] 
+ \hline\hline
+ \cellcolor[HTML]{0000FF} & $\geq150$  & Aguas muy limpias\\
+ \multirow{-2}{*}{\cellcolor[HTML]{0000FF}Buena} & 123-149 & Aguas no contaminadas\\
+ \hline
+ {\cellcolor[HTML]{008000}Aceptable} & $71-122$ & Ligeramente contaminadas: se evidencian efectos\\ 
+ \hline
+ {\cellcolor[HTML]{FFFF00}Dudosa} & $46-70$ & Aguas moderadamente contaminadas\\
+ \hline
+ {\cellcolor[HTML]{FFA500}Crítica} & $21-45$ & Aguas muy contaminadas\\
+ \hline
+ {\cellcolor[HTML]{FF0000}Muy crítica} & $< 20$ & Aguas fuertemente contaminadas\\ [1ex]
+ \hline
+\end{tabular}
+\end{table}
+
+## Calidad hidrobiológica del agua: fuentes hídricas Barbosa
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE, fig.height=8,fig.cap = "\\label{fig:fig_HB_Bar}Registro histórico de la calidad hidrobiológica del agua en las fuentes hídricas de Barbosa monitoreadas por Piragua-Corantioquia (Elaboración Propia)."}
+hb_barbosa
+```
+
+## Calidad hidrobiológica del agua: fuentes hídricas Bello
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE, fig.height=8,fig.cap = "\\label{fig:fig_HB_Bello}Registro histórico de la calidad hidrobiológica del agua en las fuentes hídricas de Bello monitoreadas por Piragua-Corantioquia (Elaboración Propia)."}
+hb_bello
+```
+
+## Calidad hidrobiológica del agua: fuentes hídricas Caldas
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE, fig.height=8,fig.cap = "\\label{fig:fig_HB_Caldas}Registro histórico de la calidad hidrobiológica del agua en las fuentes hídricas de Caldas monitoreadas por Piragua-Corantioquia (Elaboración Propia)."}
+hb_cal
+```
+
+## Calidad hidrobiológica del agua: fuentes hídricas Copacabana
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE, fig.height=8,fig.cap = "\\label{fig:fig_HB_Copa}Registro histórico de la calidad hidrobiológica del agua en las fuentes hídricas de Copacabana monitoreadas por Piragua-Corantioquia (Elaboración Propia)."}
+hb_copa
+```
+
+## Calidad hidrobiológica del agua: fuentes hídricas Donmatías
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE, fig.height=8,fig.cap = "\\label{fig:fig_HB_Don}Registro histórico de la calidad hidrobiológica del agua en las fuentes hídricas de Donmatías monitoreadas por Piragua-Corantioquia (Elaboración Propia)."}
+hb_don
+```
+
+## Calidad hidrobiológica del agua: fuentes hídricas Envigado
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE, fig.height=8,fig.cap = "\\label{fig:fig_HB_Envigado}Registro histórico de la calidad hidrobiológica del agua en las fuentes hídricas de Envigado monitoreadas por Piragua-Corantioquia (Elaboración Propia)."}
+hb_env
+```
+
+## Calidad hidrobiológica del agua: fuentes hídricas Girardota
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE, fig.height=8,fig.cap = "\\label{fig:fig_HB_Girardota}Registro histórico de la calidad hidrobiológica del agua en las fuentes hídricas de Girardota monitoreadas por Piragua-Corantioquia (Elaboración Propia)."}
+hb_gira
+```
+
+## Calidad hidrobiológica del agua: fuentes hídricas Itagüí
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE, fig.height=8,fig.cap = "\\label{fig:fig_HB_Ita}Registro histórico de la calidad hidrobiológica del agua en las fuentes hídricas de Itagüí monitoreadas por Piragua-Corantioquia (Elaboración Propia)."}
+hb_ita
+```
+
+## Calidad hidrobiológica del agua: fuentes hídricas La Estrella
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE, fig.height=8,fig.cap = "\\label{fig:fig_HB_Est}Registro histórico de la calidad hidrobiológica del agua en las fuentes hídricas de La Estrella monitoreadas por Piragua-Corantioquia (Elaboración Propia)."}
+hb_estre
+```
+
+## Calidad hidrobiológica del agua: fuentes hídricas Medellín
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE, fig.height=8,fig.cap = "\\label{fig:fig_HB_Med}Registro histórico de la calidad hidrobiológica del agua en las fuentes hídricas de Medellín monitoreadas por Piragua-Corantioquia (Elaboración Propia)."}
+hb_mede
+```
+
+## Calidad hidrobiológica del agua: fuentes hídricas Sabaneta
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE, fig.height=8,fig.cap = "\\label{fig:fig_HB_Sab}Registro histórico de la calidad hidrobiológica del agua en las fuentes hídricas de Sabaneta monitoreadas por Piragua-Corantioquia (Elaboración Propia)."}
+hb_saba
+```

@@ -1,0 +1,103 @@
+---
+title: "Prueba Dashboard Aire"
+author: "GI Piragua"
+output: 
+    flexdashboard::flex_dashboard:
+    orientation: rows
+    social: menu
+    source_code: embed
+---
+
+```{r setup, include=FALSE}
+
+# Carga inicial de librerías
+
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+library(ggplot2)
+library(latex2exp)
+library(plotly)
+library(mathjaxr)
+library(DT)
+
+load("aire_medellin.Rdata")
+
+medellin_aire$Variable = as.factor(medellin_aire$Variable)
+
+
+```
+
+Reporte gráfico para calidad de aire Medellín (2011-2018)
+====================================================================
+Column 
+-----------------------------------------------------------------------
+### Series temporales anuales para variables de interés
+
+```{r}
+
+p = ggplot(medellin_aire, aes(x = Fecha, y = promedio,
+                              fill = Variable, 
+                              color = Variable)) +
+  geom_area(alpha = 0.6) +
+  stat_smooth() +
+  facet_wrap(~Variable, nrow = 2) +
+  labs(x = "Años de registro", 
+       y = "Concentración µg/m³") +
+  theme(text = element_text(size = 10)) +
+  theme(legend.title=element_blank())
+
+ggplotly(p)
+
+```
+
+Column 
+-----------------------------------------------------------------------
+### Diagrama de cajas y bigotes anuales para cada variable de interés
+
+```{r}
+
+q = ggplot(medellin_aire) +
+  geom_boxplot(mapping = aes(x = Año, y = promedio, fill = Año)) +
+  facet_wrap(~Variable, nrow = 4) +
+  labs(x = "Años de registro", 
+       y = "Concentración µg/m³") +
+  theme(text = element_text(size = 10)) +
+  theme(legend.title=element_blank())
+
+ggplotly(q)
+
+```
+
+Curvas de regresión y tabla de datos
+====================================================================
+Column
+-----------------------------------------------------------------------
+
+### Curvas de regresión aisladas para cada variable examinada
+
+```{r}
+
+r = ggplot(medellin_aire) +
+  geom_smooth(mapping = aes(x = Fecha, y = promedio, 
+                            linetype = Variable, 
+                            color = Variable)) +
+  labs(x = "Años de registro", 
+       y = "Concentración µg/m³") +
+  theme(text = element_text(size = 13)) +
+  theme(legend.title=element_blank())
+
+ggplotly(r)
+
+```
+
+Column
+-----------------------------------------------------------------------
+### Tabla de datos calidad de aire en Medellín
+
+```{r}
+
+datatable(medellin_aire)
+
+```
+
